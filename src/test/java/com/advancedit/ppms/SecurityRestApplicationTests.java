@@ -1,4 +1,4 @@
-package com.djamware.SecurityRest;
+package com.advancedit.ppms;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;

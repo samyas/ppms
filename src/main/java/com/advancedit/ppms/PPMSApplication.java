@@ -56,7 +56,7 @@ public class PPMSApplication {
 	    		user1.setEmail("abdessalem.samet@gmail.com");
 	    		user1.setFullname("Abdessalem  SAMET");
 	    		user1.setPassword("ppms2019");
-	    		  user1.setPassword(bCryptPasswordEncoder.encode(user1.getPassword()));
+	    		user1.setPassword(bCryptPasswordEncoder.encode(user1.getPassword()));
 	    		user1.setRoles(Collections.singleton(Role.STUDENT));
 	    		user1.setEnabled(true);
 	    	//	user1.setPermissions(new HashSet<>(Arrays.asList(Permission.CREATE_PROJECT, Permission.ASSIGN)));

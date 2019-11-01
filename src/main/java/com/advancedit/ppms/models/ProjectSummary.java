@@ -6,10 +6,8 @@ import java.util.List;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import com.advancedit.ppms.controllers.beans.Apply;
-
 @Document
-public class Project {
+public class ProjectSummary {
 
 
 	@Id
@@ -26,7 +24,6 @@ public class Project {
 	private String startDate;
 	private String endDate;
 	
-	private List<Apply> applies = new ArrayList<>();
 	
 	private String managerPersonId;
 	
@@ -41,8 +38,45 @@ public class Project {
 	
 	private String logoId;
 	
+	private int nbrGoals;
+	
+	private int nbrTasks;
+	
 	private List<Goal> goals = new ArrayList<>();
 	
+	
+	
+	
+	public List<Goal> getGoals() {
+		return goals;
+	}
+
+
+	public void setGoals(List<Goal> goals) {
+		this.goals = goals;
+	}
+
+
+	public int getNbrTasks() {
+		return nbrTasks;
+	}
+
+
+	public void setNbrTasks(int nbrTasks) {
+		this.nbrTasks = nbrTasks;
+	}
+
+
+	public int getNbrGoals() {
+		return nbrGoals;
+	}
+
+
+	public void setNbrGoals(int nbrGoals) {
+		this.nbrGoals = nbrGoals;
+	}
+
+
 	private List<String> technologies = new ArrayList<>();;
 	
 	
@@ -237,27 +271,6 @@ public class Project {
 	public void setAssignedTo(List<ShortPerson> assignedTo) {
 		this.assignedTo = assignedTo;
 	}
-
-
-	public List<Goal> getGoals() {
-		return goals;
-	}
-
-
-	public void setGoals(List<Goal> goals) {
-		this.goals = goals;
-	}
-
-
-	public List<Apply> getApplies() {
-		return applies;
-	}
-
-
-	public void setApplies(List<Apply> applies) {
-		this.applies = applies;
-	}
-	
 	
 	
 

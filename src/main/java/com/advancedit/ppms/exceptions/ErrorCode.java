@@ -21,6 +21,11 @@ public enum ErrorCode {
 	PERSON_EMAIL_NOT_FOUND("error.email.emailNotFound"),
 
 	
+	//PROJECT MODULE
+	PROJECT_ID_NOT_FOUND("project.id.not.found"),
+	PROJECT_ALREADY_EXIST("project.name.nameExist"),
+
+	
 	//COMPANY MODULE
 	COMPANY_ID_NOT_FOUND("company.id.not.found"),
 	COMPANY_EMAIL_ALREADY_EXIST("error.email.emailExist"),
