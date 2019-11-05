@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.advancedit.ppms.configs.JwtTokenProvider;
-import com.advancedit.ppms.models.User;
+import com.advancedit.ppms.models.user.User;
 import com.advancedit.ppms.repositories.UserRepository;
 import com.advancedit.ppms.services.CustomUserDetailsService;
 

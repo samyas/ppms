@@ -13,9 +13,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.advancedit.ppms.controllers.beans.Apply;
 import com.advancedit.ppms.controllers.beans.Assignment;
-import com.advancedit.ppms.models.Goal;
-import com.advancedit.ppms.models.Project;
-import com.advancedit.ppms.models.Task;
+import com.advancedit.ppms.models.project.Goal;
+import com.advancedit.ppms.models.project.Project;
+import com.advancedit.ppms.models.project.Task;
 import com.advancedit.ppms.service.ProjectService;
 
 @RestController

@@ -11,8 +11,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.advancedit.ppms.models.Person;
-import com.advancedit.ppms.models.PersonFunction;
+import com.advancedit.ppms.models.person.Person;
+import com.advancedit.ppms.models.person.PersonFunction;
 import com.advancedit.ppms.service.PersonService;
 
 @RestController
@@ -36,6 +36,12 @@ public class PersonController {
     @RequestMapping(method=RequestMethod.POST, value="/api/persons")
     public String save(@RequestBody Person person) {
     	return personService.addPerson(person).getId();
+    }
+    
+    @RequestMapping(method=RequestMethod.PUT, value="/api/persons/{id}")
+    public String update(@PathVariable String id, @RequestBody Person person) {
+    	person.setId(id);
+    	return personService.updatePerson(person).getId();
     }
 
     @RequestMapping(method=RequestMethod.GET, value="/api/persons/{id}")

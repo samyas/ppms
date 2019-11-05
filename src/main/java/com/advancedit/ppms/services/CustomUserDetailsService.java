@@ -15,8 +15,8 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import com.advancedit.ppms.models.Role;
-import com.advancedit.ppms.models.User;
+import com.advancedit.ppms.models.user.Role;
+import com.advancedit.ppms.models.user.User;
 import com.advancedit.ppms.repositories.UserRepository;
 
 @Service

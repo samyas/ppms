@@ -5,8 +5,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 
-import com.advancedit.ppms.models.Person;
-import com.advancedit.ppms.models.PersonFunction;
+import com.advancedit.ppms.models.person.Person;
+import com.advancedit.ppms.models.person.PersonFunction;
 
 
 

@@ -38,6 +38,10 @@ public enum ErrorCode {
 	EMAIL_NAME_ALREADY_EXIST("error.name.emailNameExist"),
 	
 	EMAILS_NOT_SENT_SUCCESSFULLY("email.not.sent.successfully"),
+	
+	
+	//ORGANISATION MODULE
+	ORGANISATION_ID_NOT_FOUND("organisation.id.not.found"),
 	;
 	private String code;
 

@@ -17,7 +17,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.AuthenticationEntryPoint;
 
-import com.advancedit.ppms.models.Role;
+import com.advancedit.ppms.models.user.Role;
 import com.advancedit.ppms.services.CustomUserDetailsService;
 
 @Configuration

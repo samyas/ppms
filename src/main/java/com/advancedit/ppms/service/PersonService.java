@@ -12,8 +12,8 @@ import org.springframework.stereotype.Service;
 
 import com.advancedit.ppms.exceptions.ErrorCode;
 import com.advancedit.ppms.exceptions.PPMSException;
-import com.advancedit.ppms.models.Person;
-import com.advancedit.ppms.models.PersonFunction;
+import com.advancedit.ppms.models.person.Person;
+import com.advancedit.ppms.models.person.PersonFunction;
 import com.advancedit.ppms.repositories.FileStorageRepository;
 import com.advancedit.ppms.repositories.PersonRepository;
 

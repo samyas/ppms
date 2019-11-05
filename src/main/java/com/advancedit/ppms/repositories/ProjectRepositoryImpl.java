@@ -26,11 +26,11 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 
 import com.advancedit.ppms.exceptions.PPMSException;
-import com.advancedit.ppms.models.Goal;
-import com.advancedit.ppms.models.GoalStatus;
-import com.advancedit.ppms.models.Project;
-import com.advancedit.ppms.models.ProjectSummary;
-import com.advancedit.ppms.models.Task;
+import com.advancedit.ppms.models.project.Goal;
+import com.advancedit.ppms.models.project.GoalStatus;
+import com.advancedit.ppms.models.project.Project;
+import com.advancedit.ppms.models.project.ProjectSummary;
+import com.advancedit.ppms.models.project.Task;
 import com.mongodb.WriteResult;
 import com.mongodb.client.result.UpdateResult;
 

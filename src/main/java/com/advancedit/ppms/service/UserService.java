@@ -9,8 +9,8 @@ import org.springframework.stereotype.Service;
 
 import com.advancedit.ppms.exceptions.ErrorCode;
 import com.advancedit.ppms.exceptions.PPMSException;
-import com.advancedit.ppms.models.Role;
-import com.advancedit.ppms.models.User;
+import com.advancedit.ppms.models.user.Role;
+import com.advancedit.ppms.models.user.User;
 import com.advancedit.ppms.repositories.PersonRepository;
 import com.advancedit.ppms.repositories.UserRepository;
 

@@ -14,7 +14,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
-import com.advancedit.ppms.models.Role;
+import com.advancedit.ppms.models.user.Role;
 import com.advancedit.ppms.services.CustomUserDetailsService;
 
 import io.jsonwebtoken.Claims;

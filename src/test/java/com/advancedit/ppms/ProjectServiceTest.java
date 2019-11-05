@@ -18,12 +18,12 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import com.advancedit.ppms.models.Goal;
-import com.advancedit.ppms.models.GoalStatus;
-import com.advancedit.ppms.models.Project;
-import com.advancedit.ppms.models.ProjectStatus;
-import com.advancedit.ppms.models.ProjectSummary;
-import com.advancedit.ppms.models.Task;
+import com.advancedit.ppms.models.project.Goal;
+import com.advancedit.ppms.models.project.GoalStatus;
+import com.advancedit.ppms.models.project.Project;
+import com.advancedit.ppms.models.project.ProjectStatus;
+import com.advancedit.ppms.models.project.ProjectSummary;
+import com.advancedit.ppms.models.project.Task;
 import com.advancedit.ppms.service.ProjectService;
 
 @RunWith(SpringRunner.class)

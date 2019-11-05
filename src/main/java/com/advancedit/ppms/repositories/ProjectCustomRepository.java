@@ -5,10 +5,10 @@ import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
-import com.advancedit.ppms.models.Goal;
-import com.advancedit.ppms.models.Project;
-import com.advancedit.ppms.models.ProjectSummary;
-import com.advancedit.ppms.models.Task;
+import com.advancedit.ppms.models.project.Goal;
+import com.advancedit.ppms.models.project.Project;
+import com.advancedit.ppms.models.project.ProjectSummary;
+import com.advancedit.ppms.models.project.Task;
 
 public interface ProjectCustomRepository {
 

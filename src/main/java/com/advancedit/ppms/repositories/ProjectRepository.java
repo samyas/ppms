@@ -8,8 +8,8 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
 
-import com.advancedit.ppms.models.Goal;
-import com.advancedit.ppms.models.Project;
+import com.advancedit.ppms.models.project.Goal;
+import com.advancedit.ppms.models.project.Project;
 
 
 @Repository

@@ -12,12 +12,12 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import com.advancedit.ppms.models.Permission;
-import com.advancedit.ppms.models.Person;
-import com.advancedit.ppms.models.PersonFunction;
-import com.advancedit.ppms.models.Project;
-import com.advancedit.ppms.models.Role;
-import com.advancedit.ppms.models.User;
+import com.advancedit.ppms.models.person.Person;
+import com.advancedit.ppms.models.person.PersonFunction;
+import com.advancedit.ppms.models.project.Project;
+import com.advancedit.ppms.models.user.Permission;
+import com.advancedit.ppms.models.user.Role;
+import com.advancedit.ppms.models.user.User;
 import com.advancedit.ppms.repositories.PersonRepository;
 import com.advancedit.ppms.repositories.ProjectRepository;
 import com.advancedit.ppms.repositories.UserRepository;
