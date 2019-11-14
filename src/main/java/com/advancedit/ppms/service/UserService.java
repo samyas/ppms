@@ -1,67 +1,171 @@
 package com.advancedit.ppms.service;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.*;
 
+import com.advancedit.ppms.models.organisation.Organisation;
+import com.advancedit.ppms.models.person.Person;
+import com.advancedit.ppms.models.user.VerificationToken;
+import com.advancedit.ppms.repositories.VerificationTokenRepository;
+import com.advancedit.ppms.utils.LoggedUserInfo;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.advancedit.ppms.exceptions.ErrorCode;
 import com.advancedit.ppms.exceptions.PPMSException;
 import com.advancedit.ppms.models.user.Role;
 import com.advancedit.ppms.models.user.User;
-import com.advancedit.ppms.repositories.PersonRepository;
 import com.advancedit.ppms.repositories.UserRepository;
 
-
+import static com.advancedit.ppms.models.person.PersonFunction.*;
 
 
 @Service
 public class UserService {
+
+	@Value("${email.token.expiration.days:5}")
+	private int expirationDuration = 5;
+
 	@Autowired
 	private UserRepository userRepository;
-	
-	
-	@Autowired
-	private PersonRepository personRepository;
 
-    public List<User> getAllUsers(){
+	@Autowired
+	private VerificationTokenRepository verificationTokenRepository;
+
+	@Autowired
+	private PersonService personService;
+
+	@Autowired
+	private PasswordEncoder bCryptPasswordEncoder;
+
+	@Autowired
+	private SequenceGeneratorService sequenceGeneratorService;
+
+
+
+	public List<User> getAllUsers(){
     	return userRepository.findAll();
     }
     
 
     public User getUserByUsername(String username){
-    	return userRepository.findByEmail(username);
+    	return userRepository.findByUsername(username);
     	
     }
-    
-    public User getUserById(String id){
-    	
-    	User user = userRepository.findById(id).orElseThrow(() -> new PPMSException(ErrorCode.USER_ID_NOT_FOUND, String.format("User id not found '%s'.", id)));
-    	return user;
-    	
-    	
-    }
-    
-    public User addUser(User user){
-       	if (userRepository.findByEmail(user.getEmail()) != null){
-       		throw new PPMSException(ErrorCode.USER_EMAIL_ALREADY_EXIST, String.format("Email already exist '%s'.", user.getEmail()));
-   	    }
-       	user.setId(null);
-       	user.setRoles(Collections.singleton(Role.STUDENT));
-       /*	if (personRepository.findByEmail(user.getEmail()) == null){
-           	Person p = new Person();
-           	p.setEmail(user.getEmail());
-           	personRepository.save(p);
-       	}*/
 
-    	return userRepository.save(user);
-    	
+    public User getUserById(String id){
+    	return userRepository.findById(id).orElseThrow(
+    			() -> new PPMSException(ErrorCode.USER_ID_NOT_FOUND, String.format("User id not found '%s'.", id)));
     }
+
+
+
+	public void register(User user){
+		 Optional.ofNullable(userRepository.findByEmail(user.getEmail()))
+				.ifPresent((s) -> {throw new PPMSException("User with email: " + user.getEmail() + " already exists");});
+
+		 Optional.ofNullable(userRepository.findByUsername(user.getUsername()))
+				 .ifPresent((s) -> {throw new PPMSException("User with username: " + user.getEmail() + " already exists");});
+
+		User savedUser = saveUser(user);
+		VerificationToken verificationToken = generateValidationEmailToken(savedUser);
+		sendEmailActivation(savedUser, verificationToken);
+
+	}
+
+	public void activate(String userId) {
+		User user = getUserById(userId);
+		if (Boolean.TRUE.equals(user.getOrganisationCreationRequest())){
+			user.setRoles(Collections.singleton(Role.ADMIN_CREATOR));
+		}else{
+			throw new PPMSException("Super Admin can Enable/Disable account for Organisation Creator");
+		}
+
+		long tenantId = sequenceGeneratorService.generateSequence(Organisation.SEQUENCE_NAME);
+		user.setEnabled(true);
+		user.setEmailIsValid(true);
+		user.getTenantIds().add(tenantId);
+		userRepository.save(user);
+
+		Person person = new Person();
+		person.setValid(true);
+		person.setTenantId(tenantId);
+		person.setEmail(user.getEmail());
+		personService.addPerson(tenantId, person);
+	}
+
+	private VerificationToken generateValidationEmailToken(User user){
+		LocalDateTime localDateTime = LocalDateTime.now();
+		VerificationToken verificationToken = new VerificationToken();
+		verificationToken.setToken(UUID.randomUUID());
+		verificationToken.setStartDate(Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant()));
+		verificationToken.setUserId(user.getId());
+		verificationToken.setExpirationDate(Date.from(localDateTime.plusDays(expirationDuration).atZone(ZoneId.systemDefault()).toInstant()));
+		return verificationTokenRepository.save(verificationToken);
+	}
+
+
+	public void validateToken(String token) {
+		VerificationToken verificationToken = verificationTokenRepository.findByToken(UUID.fromString(token));
+		if (verificationToken == null){
+			throw new PPMSException("Token is invalid");
+		}
+		Date currentDate = Date.from(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant());
+		if (verificationToken.getExpirationDate().before(currentDate)){
+			throw new PPMSException("Token is expired");
+		}
+		User user = userRepository.findById(verificationToken.getUserId())
+				.orElseThrow(() -> new PPMSException("User not found"));
+		user.setEmailIsValid(true);
+		userRepository.save(user);
+	}
+
+	private void sendEmailActivation(User user, VerificationToken verificationToken){
+		//TODO to implement
+	}
+
+
+	private User saveUser(User user) {
+		user.setPassword(bCryptPasswordEncoder.encode(user.getPassword()));
+		user.setEnabled(false);
+		user.setEmailIsValid(false);
+		user.setRoles(Collections.emptySet());
+		user.setPermissions(Collections.emptySet());
+		return userRepository.save(user);
+	}
+
+	public void linkToAnOrganisation(long tenantId, LoggedUserInfo userInfo) {
+		User user = userRepository.findByUsername(userInfo.getUsername());
+		if (!user.getTenantIds().contains(tenantId)){
+			user.getTenantIds().add(tenantId);
+		}
+		Person person = personService.getPersonByEmail(tenantId, user.getEmail());
+		if (person == null){
+			person = new Person();
+			person.setTenantId(tenantId);
+			person.setEmail(user.getEmail());
+			personService.addPerson(tenantId, person);
+		}else if (person.isValid()){
+			user.setEnabled(true);
+			if (STAFF.equals(person.getPersonfunction())){
+				user.setRoles(Collections.singleton(Role.ADMIN));
+			}else if (Arrays.asList(STUDENT, PHD_STUDENT).contains(person.getPersonfunction())){
+				user.setRoles(Collections.singleton(Role.STUDENT));
+			}else if(TEACHER.equals(person.getPersonfunction())){
+				user.setRoles(Collections.singleton(Role.ADMIN));
+			}
+			userRepository.save(user);
+		}
+
+	}
     
-    
- void delete(String userId) {
+ 	void delete(String userId) {
 		userRepository.deleteById(userId);;
 	}
+
+
 }

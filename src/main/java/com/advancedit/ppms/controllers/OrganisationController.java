@@ -3,7 +3,10 @@ package com.advancedit.ppms.controllers;
 import java.util.List;
 import java.util.Optional;
 
+import com.advancedit.ppms.models.user.Role;
+import com.advancedit.ppms.utils.SecurityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -15,6 +18,8 @@ import com.advancedit.ppms.models.organisation.Organisation;
 import com.advancedit.ppms.models.organisation.Sector;
 import com.advancedit.ppms.repositories.OrganisationRepository;
 import com.advancedit.ppms.service.OrganisationService;
+
+import static com.advancedit.ppms.utils.SecurityUtils.*;
 
 @RestController
 public class OrganisationController {
@@ -29,7 +34,8 @@ public class OrganisationController {
 
     @RequestMapping(method=RequestMethod.POST, value="/api/organisations")
     public String save(@RequestBody Organisation organisation) {
-       return organisationService.addOrganisation(organisation).getId();
+        hasRole(Role.ADMIN_CREATOR);
+       return organisationService.addOrganisation(getCurrentTenantId(), getLoggedUserInfo().getUsername(),  organisation).getId();
     }
 
     @RequestMapping(method=RequestMethod.GET, value="/api/organisations/{organisationId}")
@@ -39,57 +45,66 @@ public class OrganisationController {
 
     @RequestMapping(method=RequestMethod.PUT, value="/api/organisations/{organisationId}")
     public String update(@PathVariable String organisationId, @RequestBody Organisation organisation) {
-    	organisation.setId(organisationId);
-        organisationService.updateOrganisation(organisation);
+        hasAnyRole(Role.ADMIN_CREATOR, Role.ADMIN);
+        organisation.setId(organisationId);
+        organisationService.updateOrganisation(getCurrentTenantId(), organisation);
         return organisationId;
     }
 
     @RequestMapping(method=RequestMethod.DELETE, value="/api/organisations/{organisationId}")
     public void delete(@PathVariable String organisationId) {
-       organisationService.delete(organisationId);
+        hasAnyRole(Role.ADMIN_CREATOR);
+       organisationService.delete(getCurrentTenantId(),organisationId);
 
     }
     
     //Department Management
     @RequestMapping(method=RequestMethod.POST, value="/api/organisations/{organisationId}/departments")
     public String addDepartment(@PathVariable String organisationId, @RequestBody Department department) {
-    	   return organisationService.addDepartment(organisationId, department).getId();
+        hasAnyRole(Role.ADMIN_CREATOR, Role.ADMIN);
+        return organisationService.addDepartment(getCurrentTenantId(), organisationId, department);
     }
     
     @RequestMapping(method=RequestMethod.PUT, value="/api/organisations/{organisationId}/departments/{departmentId}")
     public String updateDepartment(@PathVariable String organisationId, @PathVariable String departmentId, @RequestBody Department department) {
-    	   return organisationService.updateDepartment(organisationId, departmentId, department).getId();
+        hasAnyRole(Role.ADMIN_CREATOR, Role.ADMIN);
+    	   return organisationService.updateDepartment(getCurrentTenantId(),organisationId, departmentId, department);
     }
     
     @RequestMapping(method=RequestMethod.GET, value="/api/organisations/{organisationId}/departments/{departmentId}")
     public Department getDepartment(@PathVariable String organisationId, @PathVariable String departmentId) {
-    	   return organisationService.getDepartment(organisationId, departmentId);
+        return organisationService.getDepartment(organisationId, departmentId);
     }
     
     @RequestMapping(method=RequestMethod.DELETE, value="/api/organisations/{organisationId}/departments/{departmentId}")
     public void deleteDepartment(@PathVariable String organisationId, @PathVariable String departmentId) {
-    	    organisationService.deleteDepartment(organisationId, departmentId);
+        hasAnyRole(Role.ADMIN_CREATOR, Role.ADMIN);
+        organisationService.deleteDepartment(getCurrentTenantId(), organisationId, departmentId);
     }
     
     //Sector Management
     @RequestMapping(method=RequestMethod.POST, value="/api/organisations/{organisationId}/departments/{departmentId}/sectors")
     public String addSector(@PathVariable String organisationId, @PathVariable String departmentId, @RequestBody Sector sector) {
-    	   return organisationService.addSector(organisationId, departmentId, sector).getId();
+        hasAnyRole(Role.ADMIN_CREATOR, Role.ADMIN);
+    	   return organisationService.addSector(getCurrentTenantId(), organisationId, departmentId, sector);
     }
     
     @RequestMapping(method=RequestMethod.PUT, value="/api/organisations/{organisationId}/departments/{departmentId}/sectors/{sectorId}")
     public String updateSector(@PathVariable String organisationId, @PathVariable String departmentId, @PathVariable String sectorId, @RequestBody Sector sector) {
-    	   return organisationService.updateSector(organisationId, departmentId, sectorId, sector).getId();
+        hasAnyRole(Role.ADMIN_CREATOR, Role.ADMIN);
+        return organisationService.updateSector(getCurrentTenantId(), organisationId, departmentId, sectorId, sector).getId();
     }
     
     @RequestMapping(method=RequestMethod.GET, value="/api/organisations/{organisationId}/departments/{departmentId}/sectors/{sectorId}")
     public Sector getSector(@PathVariable String organisationId, @PathVariable String departmentId, @PathVariable String sectorId) {
+
     	   return organisationService.getSector(organisationId, departmentId, sectorId);
     }
     
-    @RequestMapping(method=RequestMethod.GET, value="/api/organisations/{organisationId}/departments/{departmentId}/sectors/{sectorId}")
+    @RequestMapping(method=RequestMethod.DELETE, value="/api/organisations/{organisationId}/departments/{departmentId}/sectors/{sectorId}")
     public void deleteSector(@PathVariable String organisationId, @PathVariable String departmentId, @PathVariable String sectorId) {
-    	    organisationService.deleteSector(organisationId, departmentId, sectorId);
+        hasAnyRole(Role.ADMIN_CREATOR, Role.ADMIN);
+        organisationService.deleteSector(getCurrentTenantId(), organisationId, departmentId, sectorId);
     }
 
 }

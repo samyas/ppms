@@ -2,6 +2,8 @@ package com.advancedit.ppms.controllers;
 
 import java.util.List;
 
+import com.advancedit.ppms.models.user.Role;
+import com.advancedit.ppms.utils.SecurityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -15,6 +17,8 @@ import com.advancedit.ppms.models.person.Person;
 import com.advancedit.ppms.models.person.PersonFunction;
 import com.advancedit.ppms.service.PersonService;
 
+import static com.advancedit.ppms.utils.SecurityUtils.*;
+
 @RestController
 public class PersonController {
 
@@ -23,30 +27,47 @@ public class PersonController {
 
     @RequestMapping(method=RequestMethod.GET, value="/api/persons")
     public List<Person> all() {
-        return  personService.getAllPersons();
+        return  personService.getAllPersons(getCurrentTenantId());
     }
     
     @RequestMapping(method=RequestMethod.GET, value="/api/pagedPersons")
     public Page<Person> getPagedPerson(	@RequestParam("page") int page, @RequestParam("size") int size, 
     		@RequestParam("function")PersonFunction personFunction,  @RequestParam("status")String status, 
     		@RequestParam("name")String name) {
-		return personService.getPagedListPerson(page, size, personFunction, status, name);
+		return personService.getPagedListPerson(getCurrentTenantId(), page, size, personFunction, status, name);
 	}
 
     @RequestMapping(method=RequestMethod.POST, value="/api/persons")
     public String save(@RequestBody Person person) {
-    	return personService.addPerson(person).getId();
+        hasAnyRole(Role.ADMIN, Role.ADMIN_CREATOR);
+    	return personService.addPerson(getCurrentTenantId(), person).getId();
     }
     
     @RequestMapping(method=RequestMethod.PUT, value="/api/persons/{id}")
     public String update(@PathVariable String id, @RequestBody Person person) {
     	person.setId(id);
-    	return personService.updatePerson(person).getId();
+    	if (! isHasAnyRole(Role.ADMIN, Role.ADMIN_CREATOR)){
+    	    person.setValid(false);
+        }
+    	return personService.updatePerson(getCurrentTenantId(), person).getId();
     }
 
+    @RequestMapping(method=RequestMethod.PUT, value="/api/persons/{personId}/validate")
+    public void validate(@PathVariable String personId) {
+        hasAnyRole(Role.ADMIN, Role.ADMIN_CREATOR);
+         personService.validatePerson(getCurrentTenantId(), personId);
+    }
+
+
     @RequestMapping(method=RequestMethod.GET, value="/api/persons/{id}")
-    public Person show(@PathVariable String id) {
-    	return personService.getPersonById(id);
+    public Person getDetail(@PathVariable String id) {
+    	return personService.getPersonById(getCurrentTenantId(), id);
+    }
+
+    @RequestMapping(method=RequestMethod.DELETE, value="/api/persons/{id}")
+    public void delete(@PathVariable String id) {
+        hasAnyRole(Role.ADMIN, Role.ADMIN_CREATOR);
+         personService.delete(getCurrentTenantId(), id);
     }
 
 }

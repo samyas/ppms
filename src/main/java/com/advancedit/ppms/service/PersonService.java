@@ -2,6 +2,8 @@ package com.advancedit.ppms.service;
 
 import java.util.List;
 
+import com.advancedit.ppms.models.user.User;
+import com.advancedit.ppms.repositories.UserRepository;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -23,57 +25,69 @@ import com.advancedit.ppms.repositories.PersonRepository;
 public class PersonService {
 	@Autowired
 	private PersonRepository personRepository;
-	
+
+	@Autowired
+	private UserRepository userRepository;
+
 	@Autowired
 	private FileStorageRepository fileStorageRepository;
 
-    public List<Person> getAllPersons(){
-    	return personRepository.findAll();
+    public List<Person> getAllPersons(long tenantId){
+    	return personRepository.findByTenantId(tenantId);
     }
     
-	public Page<Person> getPagedListPerson(int page, int size, PersonFunction function, String status, String name) {
+	public Page<Person> getPagedListPerson(long tenantId, int page, int size, PersonFunction function, String status, String name) {
 		Pageable pageableRequest = new PageRequest(page, size, new Sort(Sort.Direction.ASC, "name"));
 		Page<Person> persons = null;
 		if (StringUtils.isEmpty(name)){
-			persons = personRepository.findByPersonFunctionAndStatus(function, status, pageableRequest);
+			persons = personRepository.findByTenantIdAndPersonFunctionAndStatus(tenantId, function, status, pageableRequest);
 		}else{
-		    persons = personRepository.findByAllCriteria(function, status, name, pageableRequest);
+		    persons = personRepository.findByAllCriteria(tenantId, function, status, name, pageableRequest);
 		}
-	
-		
 		return persons;
 	}
-    
 
-    public Person getPersonByEmail(String email){
-    	return personRepository.findByEmail(email);
+    public Person getPersonByEmail(long tenantId, String email){
+    	return personRepository.findByTenantIdAndEmail(tenantId, email);
     }
     
-    public Person getPersonById(String id){
-    	
-    	return personRepository.findById(id).orElseThrow(() ->  new PPMSException(ErrorCode.PERSON_ID_NOT_FOUND, String.format("Person id not found '%s'.", id)));
-    	
+    public Person getPersonById(long tenantId, String id){
+    	return personRepository.findById(id)
+				.filter(p -> p.getTenantId() == tenantId)
+				.orElseThrow(() ->  new PPMSException(ErrorCode.PERSON_ID_NOT_FOUND, String.format("Person id not found '%s'.", id)));
     }
+
+
     
-    public Person addPerson(Person person){
-       	if (personRepository.findByEmail(person.getEmail()) != null){
+    public Person addPerson(long tenantId, Person person){
+       	if (personRepository.findByTenantIdAndEmail(tenantId, person.getEmail()) != null){
        		throw new PPMSException(ErrorCode.PERSON_EMAIL_ALREADY_EXIST, String.format("Email already exist '%s'.", person.getEmail()));
    	    }
        	person.setId(null);
+		person.setTenantId(tenantId);
     	return personRepository.save(person); 	
     }
     
     
-    public Person updatePerson(Person person){
-    	personRepository.findById(person.getId()).orElseThrow(() ->  new PPMSException(ErrorCode.PERSON_ID_NOT_FOUND, String.format("Person id not found '%s'.", person.getId())));
-    	return personRepository.save(person); 
-    	
+    public Person updatePerson(long tenantId, Person person){
+		getPersonById(tenantId, person.getId());
+		person.setTenantId(tenantId);
+    	return personRepository.save(person);
     }
 
+	public void validatePerson(long tenantId, String personId) {
+		Person person = getPersonById(tenantId, personId);
+		person.setValid(true);
+		person = personRepository.save(person);
+		User user = userRepository.findByEmail(person.getEmail());
+		user.setEnabled(true);
+		userRepository.save(user);
+	}
 
-	public void delete(String id) {
-		Person savedPerson = personRepository.findById(id).orElseThrow(() ->  new PPMSException(ErrorCode.PERSON_ID_NOT_FOUND, String.format("Person id not found '%s'.", id)));
-    	if (savedPerson != null){
+
+	public void delete(long tenantId, String id) {
+		Person savedPerson =  getPersonById(tenantId, id);
+		if (savedPerson != null){
     		if (savedPerson.getPhotoFileId() != null){
     			fileStorageRepository.delete(savedPerson.getPhotoFileId());
     		}
@@ -86,5 +100,5 @@ public class PersonService {
     	}
 		
 	}
-   
+
 }

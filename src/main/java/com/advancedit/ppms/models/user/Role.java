@@ -2,13 +2,15 @@ package com.advancedit.ppms.models.user;
 
 //@Document(collection = "roles")
 public enum Role {
-	
+	SUPER_ADMIN,
 	ADMIN,
 	
 	STUDENT,
 	
 	
-	STAFF
+	STAFF,
+	
+	ADMIN_CREATOR,
 	
 	;
 	

@@ -19,11 +19,13 @@ public class Person {
 	private String phone;
 	private String skype;
 	private String photoFileId;
+	private boolean valid = false;
 	
 	private PersonFunction personfunction;
 	
 	private String status;
 
+	private long tenantId;
 	
 	//@NotNull
 	private String job;
@@ -254,9 +256,22 @@ public class Person {
 	public void setLevel(String level) {
 		this.level = level;
 	}
-	
-	
-	
+
+	public boolean isValid() {
+		return valid;
+	}
+
+	public void setValid(boolean valid) {
+		this.valid = valid;
+	}
+
+	public long getTenantId() {
+		return tenantId;
+	}
+
+	public void setTenantId(long tenantId) {
+		this.tenantId = tenantId;
+	}
 }
 
 

@@ -10,6 +10,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ImportResource;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.advancedit.ppms.models.person.Person;
@@ -40,24 +41,14 @@ public class PPMSApplication {
 	    	
 	    	if (userRepository.count() == 0){
 	    		
-	    		User user = new User();
-	    		user.setEmail("imed.romdhani@gmail.com");
-	    		user.setFullname("Imed  Romdhani");
-	    		user.setPassword("ppms2020");
-	    		  user.setPassword(bCryptPasswordEncoder.encode(user.getPassword()));
-	    		user.setRoles(Collections.singleton(Role.STAFF));
-	    		user.setEnabled(true);
-	    		user.setPermissions(new HashSet<>(Arrays.asList(Permission.CREATE_PROJECT, Permission.ASSIGN)));
-	    		
-	    		userRepository.save(user);
-	    		
 	    		
 	    		User user1 = new User();
 	    		user1.setEmail("abdessalem.samet@gmail.com");
-	    		user1.setFullname("Abdessalem  SAMET");
-	    		user1.setPassword("ppms2019");
+	    		user1.setUsername("asamet");
+	    		user1.setPassword("toutou");
 	    		user1.setPassword(bCryptPasswordEncoder.encode(user1.getPassword()));
-	    		user1.setRoles(Collections.singleton(Role.STUDENT));
+	    		user1.setRoles(Collections.singleton(Role.SUPER_ADMIN));
+	    		user1.setEmailIsValid(true);
 	    		user1.setEnabled(true);
 	    	//	user1.setPermissions(new HashSet<>(Arrays.asList(Permission.CREATE_PROJECT, Permission.ASSIGN)));
 	    		
@@ -65,10 +56,10 @@ public class PPMSApplication {
 	    		
 	    		
 	    		
-	    		personRepository.saveAll(getDefaultPerson());
+	    	//	personRepository.saveAll(getDefaultPerson());
 	    		
 	    		
-	    		projectRepository.saveAll(getDefaultProjects());
+	    	//	projectRepository.saveAll(getDefaultProjects());
 	    		
 	    		
 	    	}

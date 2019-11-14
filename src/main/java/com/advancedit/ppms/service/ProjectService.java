@@ -165,8 +165,9 @@ public class ProjectService {
 	}
 
 	public String updateGoal(String projectId, String goalId, Goal goal) {
-		// TODO Auto-generated method stub
-		return null;
+	    goal.setGoalId(goalId);
+		projectRepository.updateGoal(projectId, goal);
+		return goalId;
 	}
 
 	public Task getTask(String projectId, String goalId, String taskId) {

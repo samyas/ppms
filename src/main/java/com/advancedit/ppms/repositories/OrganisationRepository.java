@@ -1,13 +1,14 @@
 package com.advancedit.ppms.repositories;
 
-import org.springframework.data.mongodb.repository.MongoRepository;
-import org.springframework.data.repository.CrudRepository;
-
 import com.advancedit.ppms.models.organisation.Organisation;
-import com.advancedit.ppms.models.person.Person;
+import org.springframework.data.mongodb.repository.MongoRepository;
 
-public interface OrganisationRepository extends MongoRepository<Organisation, String> {
-	
+public interface OrganisationRepository extends MongoRepository<Organisation, String>, OrganisationCustomRepository {
+
+
+    Organisation findByTenantId(long tenantId);
+
+
 	@Override
     void delete(Organisation deleted);
 }

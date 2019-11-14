@@ -24,4 +24,9 @@ public interface ProjectCustomRepository {
     
     
     Optional<Task> getTask(String projectId, String goalId, String taskId);
+    
+
+	void updateGoal(String projectId, Goal goal);
+
+
 }

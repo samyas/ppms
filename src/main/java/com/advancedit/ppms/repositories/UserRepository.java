@@ -7,4 +7,6 @@ import com.advancedit.ppms.models.user.User;
 public interface UserRepository extends MongoRepository<User, String> {
 
 	User findByEmail(String email);
+
+	User findByUsername(String email);
 }
