@@ -1,5 +1,6 @@
-package com.advancedit.ppms;
 
+package com.advancedit.ppms;
+/*
 import com.advancedit.ppms.controllers.beans.Assignment;
 import org.bson.types.ObjectId;
 import org.junit.After;
@@ -31,29 +32,28 @@ import com.advancedit.ppms.service.ProjectService;
 @SpringBootTest
 public class ProjectServiceTest {
 
-	@Autowired
-	private ProjectService projectService;
+//	@Autowired
+//	private ProjectService projectService;
 	
 	 private List<String> ids;
 
 	 private long tenantId = 10;
-	 
 	@Before
 	public void init() {
 		ids = new ArrayList<>();
-		projectService.deleteAll();
+	//	projectService.deleteAll();
 	}
 	 
-/*	@After
+	@After
 	public void finalize() {
 		if (ids.isEmpty()){
 			ids.forEach(id -> projectService.deleteProject(id));
 		}
 	    ids.clear();
-	}*/
+	}
 	
 	
-	/*
+
 	@Test
 	public void getPagedSummury() {
 		addProjects();
@@ -176,7 +176,10 @@ public class ProjectServiceTest {
 		}
 		
 	}
-	*/
+
+
+
+
 
 	@Test
 	public void addTask() {
@@ -271,7 +274,7 @@ public class ProjectServiceTest {
 
 		
 	}
-	
+
 	
 	public void addProjects() {
 		
@@ -303,4 +306,4 @@ public class ProjectServiceTest {
 	}
 
 }
-
+	*/
