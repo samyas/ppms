@@ -9,8 +9,13 @@ import com.advancedit.ppms.models.person.Person;
 import com.advancedit.ppms.models.user.VerificationToken;
 import com.advancedit.ppms.repositories.VerificationTokenRepository;
 import com.advancedit.ppms.utils.LoggedUserInfo;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -64,38 +69,51 @@ public class UserService {
 
 
 
-	public void register(User user){
+	public User register(User user){
 		 Optional.ofNullable(userRepository.findByEmail(user.getEmail()))
 				.ifPresent((s) -> {throw new PPMSException("User with email: " + user.getEmail() + " already exists");});
 
 		 Optional.ofNullable(userRepository.findByUsername(user.getUsername()))
-				 .ifPresent((s) -> {throw new PPMSException("User with username: " + user.getEmail() + " already exists");});
+				 .ifPresent((s) -> {throw new PPMSException("User with username: " + user.getUsername() + " already exists");});
 
 		User savedUser = saveUser(user);
 		VerificationToken verificationToken = generateValidationEmailToken(savedUser);
 		sendEmailActivation(savedUser, verificationToken);
-
+		return savedUser;
 	}
 
-	public void activate(String userId) {
+	public void activate(String userId, boolean isSuperAdmin) {
 		User user = getUserById(userId);
-		if (Boolean.TRUE.equals(user.getOrganisationCreationRequest())){
-			user.setRoles(Collections.singleton(Role.ADMIN_CREATOR));
+		if (isSuperAdmin) {
+			if (Boolean.TRUE.equals(user.getOrganisationCreationRequest())){
+				user.setRoles(Collections.singleton(Role.ADMIN_CREATOR));
+			}else{
+				throw new PPMSException("Super Admin can Enable/Disable account for Organisation Creator");
+			}
+
+			long tenantId = sequenceGeneratorService.generateSequence(Organisation.SEQUENCE_NAME);
+			user.setEnabled(true);
+			user.setEmailIsValid(true);
+			user.getTenantIds().add(tenantId);
+			user.setDefaultTenantId(tenantId);
+			userRepository.save(user);
+
+			Person person = new Person();
+			person.setValid(true);
+			person.setTenantId(tenantId);
+			person.setEmail(user.getEmail());
+			personService.addPerson(tenantId, person, true);
 		}else{
-			throw new PPMSException("Super Admin can Enable/Disable account for Organisation Creator");
+			user.setEnabled(true);
+			userRepository.save(user);
+            long tenantId = user.getDefaultTenantId();
+			Person person = personService.getPersonByEmail(tenantId, user.getEmail());
+			if (person != null){
+				person.setValid(true);
+				personService.updatePerson(tenantId, person);
+			}
 		}
 
-		long tenantId = sequenceGeneratorService.generateSequence(Organisation.SEQUENCE_NAME);
-		user.setEnabled(true);
-		user.setEmailIsValid(true);
-		user.getTenantIds().add(tenantId);
-		userRepository.save(user);
-
-		Person person = new Person();
-		person.setValid(true);
-		person.setTenantId(tenantId);
-		person.setEmail(user.getEmail());
-		personService.addPerson(tenantId, person);
 	}
 
 	private VerificationToken generateValidationEmailToken(User user){
@@ -121,6 +139,9 @@ public class UserService {
 		User user = userRepository.findById(verificationToken.getUserId())
 				.orElseThrow(() -> new PPMSException("User not found"));
 		user.setEmailIsValid(true);
+		if (Boolean.TRUE.equals(user.getOrganisationCreationRequest())){
+
+		}
 		userRepository.save(user);
 	}
 
@@ -138,17 +159,21 @@ public class UserService {
 		return userRepository.save(user);
 	}
 
-	public void linkToAnOrganisation(long tenantId, LoggedUserInfo userInfo) {
+	public User linkToAnOrganisation(long tenantId, LoggedUserInfo userInfo) {
 		User user = userRepository.findByUsername(userInfo.getUsername());
 		if (!user.getTenantIds().contains(tenantId)){
 			user.getTenantIds().add(tenantId);
+			user.setDefaultTenantId(tenantId);
+			user = userRepository.save(user);
 		}
 		Person person = personService.getPersonByEmail(tenantId, user.getEmail());
 		if (person == null){
 			person = new Person();
 			person.setTenantId(tenantId);
 			person.setEmail(user.getEmail());
-			personService.addPerson(tenantId, person);
+			person.setFirstName(user.getFirstName());
+			person.setLastName(user.getLastName());
+			personService.addPerson(tenantId, person, false);
 		}else if (person.isValid()){
 			user.setEnabled(true);
 			if (STAFF.equals(person.getPersonfunction())){
@@ -158,8 +183,9 @@ public class UserService {
 			}else if(TEACHER.equals(person.getPersonfunction())){
 				user.setRoles(Collections.singleton(Role.ADMIN));
 			}
-			userRepository.save(user);
+			user = userRepository.save(user);
 		}
+		return user;
 
 	}
     
@@ -168,4 +194,25 @@ public class UserService {
 	}
 
 
+	public String getEmailToken(String userId) {
+		VerificationToken verificationToken = verificationTokenRepository.findByUserId(userId);
+		if (verificationToken == null){
+			throw new PPMSException("User Id is not found");
+		}
+		return verificationToken.getToken().toString();
+	}
+
+	public Page<User> getPagedUsers(long tenantId, int page, int size, Boolean isCreator, Boolean enabled, String name) {
+		Pageable pageableRequest =  PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "email"));;
+		Page<User> users = null;
+		//if (StringUtils.isEmpty(name)){
+		//	users = userRepository.findByTenantIdAndPersonFunctionAndStatus(tenantId, function, status, pageableRequest);
+		//}else{
+		   Long tenantIdLong = tenantId == 0 ? null : tenantId;
+
+				   users = userRepository.findByAllCriteria(tenantIdLong, isCreator, enabled, pageableRequest);
+		return users;
+	}
 }
+
+

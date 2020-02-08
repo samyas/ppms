@@ -1,9 +1,12 @@
 package com.advancedit.ppms.exceptions;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
+@ResponseStatus(HttpStatus.BAD_REQUEST)
 public class PPMSException  extends RuntimeException {
 	private static final long serialVersionUID = -6127508569926524106L;
-	private ErrorCode code;
+	private ErrorCode code = ErrorCode.UNKNOW_ERROR_OCCURED;
 
 	public PPMSException(ErrorCode code) {
 		this.code = code;

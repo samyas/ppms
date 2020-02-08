@@ -28,11 +28,14 @@ public class User {
 	private String username;
 	private boolean emailIsValid = false;
 	private boolean enabled = false;
-	
+	private String firstName;
+	private String lastName;
     private Boolean organisationCreationRequest;
     private String message;
 	
     private List<Long> tenantIds = new ArrayList<>();
+
+    private long defaultTenantId;
 	
 	//@DBRef
 	private Set<Role> roles;

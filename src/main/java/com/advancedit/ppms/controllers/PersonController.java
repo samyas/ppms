@@ -30,17 +30,17 @@ public class PersonController {
         return  personService.getAllPersons(getCurrentTenantId());
     }
     
-    @RequestMapping(method=RequestMethod.GET, value="/api/pagedPersons")
+    @RequestMapping(method=RequestMethod.GET, value="/api/persons/paged")
     public Page<Person> getPagedPerson(	@RequestParam("page") int page, @RequestParam("size") int size, 
-    		@RequestParam("function")PersonFunction personFunction,  @RequestParam("status")String status, 
-    		@RequestParam("name")String name) {
+    		@RequestParam(value = "function", required = false)PersonFunction personFunction,  @RequestParam(value = "status", required = false)String status,
+    		@RequestParam(value = "name", required = false)String name) {
 		return personService.getPagedListPerson(getCurrentTenantId(), page, size, personFunction, status, name);
 	}
 
     @RequestMapping(method=RequestMethod.POST, value="/api/persons")
     public String save(@RequestBody Person person) {
         hasAnyRole(Role.ADMIN, Role.ADMIN_CREATOR);
-    	return personService.addPerson(getCurrentTenantId(), person).getId();
+    	return personService.addPerson(getCurrentTenantId(), person, true).getId();
     }
     
     @RequestMapping(method=RequestMethod.PUT, value="/api/persons/{id}")

@@ -3,6 +3,8 @@ package com.advancedit.ppms.controllers;
 import java.util.List;
 import java.util.Optional;
 
+import com.advancedit.ppms.exceptions.ErrorCode;
+import com.advancedit.ppms.exceptions.PPMSException;
 import com.advancedit.ppms.models.user.Role;
 import com.advancedit.ppms.utils.SecurityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,8 +29,9 @@ public class OrganisationController {
 	@Autowired
     OrganisationService organisationService;
 
-    @RequestMapping(method=RequestMethod.GET, value="/api/organisations")
-    public List<Organisation> product() {
+   @RequestMapping(method=RequestMethod.GET, value="/api/organisations")
+    public List<Organisation> organisations() {
+       hasRole(Role.SUPER_ADMIN);
         return organisationService.getAllOrganisations();
     }
 
@@ -38,10 +41,17 @@ public class OrganisationController {
        return organisationService.addOrganisation(getCurrentTenantId(), getLoggedUserInfo().getUsername(),  organisation).getId();
     }
 
+    @RequestMapping(method=RequestMethod.GET, value="/api/organisations/connected/user")
+    public Organisation getDetailByUser() {
+        return organisationService.getOrganisationByTenantId(getCurrentTenantId()).orElseThrow(() ->
+                new PPMSException(ErrorCode.ORGANISATION_ID_NOT_FOUND, "No organisation found linked to the connected user"));
+    }
+
     @RequestMapping(method=RequestMethod.GET, value="/api/organisations/{organisationId}")
     public Organisation getDetail(@PathVariable String organisationId) {
-        return organisationService.getOrganisationById(organisationId);
+        return organisationService.getOrganisationById(getCurrentTenantId(), organisationId);
     }
+
 
     @RequestMapping(method=RequestMethod.PUT, value="/api/organisations/{organisationId}")
     public String update(@PathVariable String organisationId, @RequestBody Organisation organisation) {
@@ -73,7 +83,7 @@ public class OrganisationController {
     
     @RequestMapping(method=RequestMethod.GET, value="/api/organisations/{organisationId}/departments/{departmentId}")
     public Department getDepartment(@PathVariable String organisationId, @PathVariable String departmentId) {
-        return organisationService.getDepartment(organisationId, departmentId);
+        return organisationService.getDepartment(getCurrentTenantId(), organisationId, departmentId);
     }
     
     @RequestMapping(method=RequestMethod.DELETE, value="/api/organisations/{organisationId}/departments/{departmentId}")
@@ -98,7 +108,7 @@ public class OrganisationController {
     @RequestMapping(method=RequestMethod.GET, value="/api/organisations/{organisationId}/departments/{departmentId}/sectors/{sectorId}")
     public Sector getSector(@PathVariable String organisationId, @PathVariable String departmentId, @PathVariable String sectorId) {
 
-    	   return organisationService.getSector(organisationId, departmentId, sectorId);
+    	   return organisationService.getSector(getCurrentTenantId(), organisationId, departmentId, sectorId);
     }
     
     @RequestMapping(method=RequestMethod.DELETE, value="/api/organisations/{organisationId}/departments/{departmentId}/sectors/{sectorId}")

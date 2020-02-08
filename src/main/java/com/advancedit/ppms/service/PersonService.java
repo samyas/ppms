@@ -37,7 +37,7 @@ public class PersonService {
     }
     
 	public Page<Person> getPagedListPerson(long tenantId, int page, int size, PersonFunction function, String status, String name) {
-		Pageable pageableRequest = new PageRequest(page, size, new Sort(Sort.Direction.ASC, "name"));
+		Pageable pageableRequest =  PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "name"));
 		Page<Person> persons = null;
 		if (StringUtils.isEmpty(name)){
 			persons = personRepository.findByTenantIdAndPersonFunctionAndStatus(tenantId, function, status, pageableRequest);
@@ -59,12 +59,13 @@ public class PersonService {
 
 
     
-    public Person addPerson(long tenantId, Person person){
+    public Person addPerson(long tenantId, Person person, boolean isValid){
        	if (personRepository.findByTenantIdAndEmail(tenantId, person.getEmail()) != null){
        		throw new PPMSException(ErrorCode.PERSON_EMAIL_ALREADY_EXIST, String.format("Email already exist '%s'.", person.getEmail()));
    	    }
        	person.setId(null);
 		person.setTenantId(tenantId);
+		person.setValid(isValid);
     	return personRepository.save(person); 	
     }
     

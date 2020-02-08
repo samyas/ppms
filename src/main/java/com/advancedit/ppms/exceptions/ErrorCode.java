@@ -4,10 +4,15 @@ public enum ErrorCode {
 
 	//GLOBAL ERROR
 	UNKNOW_ERROR_OCCURED("global.unkhnown.error"),
+
+	TOKEN_EXPIRED("token.expired"),
 	
 	//AUTH
 	UNAUTHORIZED("unauthorized"),
 	FORBIDDEN("forbidden"),
+
+
+	ORGANISATION_SELECTION_REQUIRED("organisation.selection.required"),
 	
 	//USER MODULE
 	USER_USERNAME_NOT_FOUND("user.username.not.found"),
@@ -25,7 +30,9 @@ public enum ErrorCode {
 	PROJECT_ID_NOT_FOUND("project.id.not.found"),
 	PROJECT_ALREADY_EXIST("project.name.nameExist"),
 
-	
+	TASK_ID_NOT_FOUND("task.id.not.found"),
+
+
 	//COMPANY MODULE
 	COMPANY_ID_NOT_FOUND("company.id.not.found"),
 	COMPANY_EMAIL_ALREADY_EXIST("error.email.emailExist"),

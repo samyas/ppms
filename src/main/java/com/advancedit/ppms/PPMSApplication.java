@@ -46,6 +46,8 @@ public class PPMSApplication {
 	    		user1.setEmail("abdessalem.samet@gmail.com");
 	    		user1.setUsername("asamet");
 	    		user1.setPassword("toutou");
+	    		user1.setFirstName("SAMET");
+	    		user1.setLastName("Abdessalem");
 	    		user1.setPassword(bCryptPasswordEncoder.encode(user1.getPassword()));
 	    		user1.setRoles(Collections.singleton(Role.SUPER_ADMIN));
 	    		user1.setEmailIsValid(true);
@@ -68,11 +70,12 @@ public class PPMSApplication {
 
 	}
 	
-	private List<Person> getDefaultPerson() {
+	/*private List<Person> getDefaultPerson() {
 		
 		List<Person> persons = new ArrayList<>();
 		for(int i = 0; i< 30; i++){
 			Person p1 = new Person( "user" + i + "@napier.uk", "Sebastian" + i, "Mike" + i);
+
 			p1.setJob("Devloppeur java");
 			p1.setYearsExperience(5);
 			p1.setPhone("+878798989"+i);
@@ -81,10 +84,10 @@ public class PPMSApplication {
 		}
 		return persons;
 	
-	}
+	}*/
 
 	
-    private List<Project> getDefaultProjects() {
+    /*private List<Project> getDefaultProjects() {
 		
 		List<Project> projects = new ArrayList<>();
 		for(int i = 0; i< 30; i++){
@@ -96,7 +99,7 @@ public class PPMSApplication {
 		}
 		return projects;
 	
-	}
+	}*/
 
 }
 

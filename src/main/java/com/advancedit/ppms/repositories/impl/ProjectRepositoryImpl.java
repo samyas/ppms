@@ -1,40 +1,37 @@
 package com.advancedit.ppms.repositories.impl;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import com.advancedit.ppms.models.person.ShortPerson;
 import com.advancedit.ppms.repositories.ProjectCustomRepository;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.UpdateOptions;
+import org.bson.Document;
+import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.domain.Sort.Direction;
+import org.springframework.data.mongodb.core.MappedDocument;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
-import org.springframework.data.mongodb.core.aggregation.AggregationExpression;
 
-import static org.springframework.data.mongodb.core.aggregation.Aggregation.*;
 import org.springframework.data.mongodb.core.aggregation.AggregationResults;
-import org.springframework.data.mongodb.core.aggregation.ArrayOperators;
-import org.springframework.data.mongodb.core.aggregation.ComparisonOperators;
-import org.springframework.data.mongodb.core.aggregation.GroupOperation;
-import org.springframework.data.mongodb.core.aggregation.MatchOperation;
-import org.springframework.data.mongodb.core.aggregation.SortOperation;
 import org.springframework.data.mongodb.core.query.BasicQuery;
 import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
-import org.springframework.data.mongodb.repository.MongoRepository;
-import org.springframework.data.mongodb.repository.Query;
 
 import com.advancedit.ppms.exceptions.PPMSException;
 import com.advancedit.ppms.models.project.Goal;
-import com.advancedit.ppms.models.project.GoalStatus;
 import com.advancedit.ppms.models.project.Project;
 import com.advancedit.ppms.models.project.ProjectSummary;
 import com.advancedit.ppms.models.project.Task;
-import com.mongodb.WriteResult;
 import com.mongodb.client.result.UpdateResult;
 
+import javax.swing.plaf.basic.BasicListUI;
 
 
 public class ProjectRepositoryImpl implements ProjectCustomRepository {
@@ -47,7 +44,7 @@ public class ProjectRepositoryImpl implements ProjectCustomRepository {
     }
     
 	@Override
-	public Page<ProjectSummary> getPagedProjectSummary(int page, int size, Pageable pageable) {
+	public Page<ProjectSummary> getPagedProjectSummary(long tenantId, int page, int size, Pageable pageable) {
 		
 		final Aggregation aggregation = Aggregation.newAggregation(
              //   Aggregation.match(Criteria.where("facebookPosts.date").regex(REGEX)),
@@ -72,8 +69,8 @@ public class ProjectRepositoryImpl implements ProjectCustomRepository {
 	}
 
 	@Override
-	public Optional<Goal> getGoal(String projectId, String goalId) {
-		BasicQuery query = new BasicQuery( Criteria.where("projectId").is(projectId).getCriteriaObject());
+	public Optional<Goal> getGoal(long tenantId, String projectId, String goalId) {
+		BasicQuery query = new BasicQuery( Criteria.where("projectId").is(projectId).and("tenantId").is(tenantId).getCriteriaObject());
 		query.fields().elemMatch("goals", Criteria.where("goalId").is(goalId));
 		Project ps = mongoTemplate.findOne(query,  Project.class);
 		return ( ps.getGoals().size() == 1) ? Optional.of(ps.getGoals().get(0)) : Optional.empty() ;
@@ -95,10 +92,10 @@ public class ProjectRepositoryImpl implements ProjectCustomRepository {
 	}
 
 	@Override
-	public Goal addGoal(String projectId, Goal goal) {
+	public Goal addGoal(long tenantId, String projectId, Goal goal) {
 		
 		   // the query object
-        Criteria findProjectCriteria = Criteria.where("projectId").is(projectId);
+        Criteria findProjectCriteria = Criteria.where("projectId").is(projectId).and("tenantId").is(tenantId);
 		final Update update = new Update().addToSet("goals", goal);
 		final UpdateResult wr = mongoTemplate.updateFirst(new BasicQuery(findProjectCriteria.getCriteriaObject()), update, Project.class);
 		if (wr.getModifiedCount() != 1){
@@ -108,10 +105,10 @@ public class ProjectRepositoryImpl implements ProjectCustomRepository {
 	}
 	
 	@Override
-	public void updateGoal(String projectId, Goal goal) {
+	public void updateGoal(long tenantId, String projectId, Goal goal) {
 		
 		   // the query object
-        Criteria findProjectCriteria = Criteria.where("projectId").is(projectId);
+        Criteria findProjectCriteria = Criteria.where("projectId").is(projectId).and("tenantId").is(tenantId);
 		final Update update = new Update().addToSet("goals", goal);
 		final UpdateResult wr = mongoTemplate.updateFirst(new BasicQuery(findProjectCriteria.getCriteriaObject()), update, Project.class);
 		if (wr.getModifiedCount() != 1){
@@ -119,13 +116,67 @@ public class ProjectRepositoryImpl implements ProjectCustomRepository {
 		}
 		
 	}
-	
+
+	@Override
+	public void assignTask(long tenantId, String projectId, String goalId, String taskId, List<ShortPerson> shortPersonList){
+	/*	UpdateResult wr2 = mongoTemplate.getCollection("project").updateMany(
+				new Document().append("_id", new ObjectId(projectId) ).append("tenantId", tenantId),
+				new Document().append("$set", new Document().append("goals.$[i].tasks.$[j].assignedTo", shortPersonList)),
+				new UpdateOptions()
+						.arrayFilters(Arrays.asList(Filters.eq("i._id", new ObjectId(goalId)),
+								Filters.eq("j._id", new ObjectId(taskId))))
+		);
+
+		if (wr2.getModifiedCount() != 1){
+			throw new PPMSException("Unable to update task");
+		}*/
+		// the query object
+		Criteria findProjectCriteria = Criteria.where("projectId").is(projectId).and("tenantId").is(tenantId);
+		final Update update = new Update().set("goals.$[i].tasks.$[j].assignedTo", shortPersonList)
+			//	.filterArray(Criteria.where("i.goalId").is(new ObjectId(goalId))).filterArray(Criteria.where("j.taskId").is(new ObjectId(taskId)));
+			.filterArray(Criteria.where("i._id").is(new ObjectId(goalId))).filterArray(Criteria.where("j._id").is(new ObjectId(taskId)));
+//.filterArray(Criteria.where("i._id").is(new ObjectId(goalId))).filterArray(Criteria.where("j._id").is(new ObjectId(taskId)));
+
+		//.filterArray("i.goalId", goalId).filterArray("j.taskId", taskId);
+;
+		final UpdateResult wr = mongoTemplate.updateFirst(new BasicQuery(findProjectCriteria.getCriteriaObject()), update, Project.class);
+		if (wr.getModifiedCount() != 1){
+			throw new PPMSException("Unable to assign task");
+		}
+
+	}
+
+	@Override
+	public void updateProjectStatus(long tenantId, String projectId, String status){
+		Criteria findProjectCriteria = Criteria.where("projectId").is(projectId).and("tenantId").is(tenantId);
+		final Update update = new Update().set("status", status);
+		final UpdateResult wr = mongoTemplate.updateFirst(new BasicQuery(findProjectCriteria.getCriteriaObject()), update, Project.class);
+		if (wr.getModifiedCount() != 1){
+			throw new PPMSException("Unable to update project");
+		}
+	}
+
+	@Override
+	public void updateTaskStatus(long tenantId, String projectId, String goalId, String taskId, String status) {
+
+		UpdateResult wr2 = mongoTemplate.getCollection("project").updateMany(
+				new Document().append("_id", new ObjectId(projectId) ).append("tenantId", tenantId),
+				new Document().append("$set", new Document().append("goals.$[i].tasks.$[j].status", status)),
+				new UpdateOptions()
+						.arrayFilters(Arrays.asList(Filters.eq("i._id", new ObjectId(goalId)),
+								Filters.eq("j._id", new ObjectId(taskId))))
+		);
+
+		if (wr2.getModifiedCount() != 1){
+			throw new PPMSException("Unable to update task");
+		}
+	}
 	
 	@Override
-	public Task addTask(String projectId, String goalId, Task task) {
+	public Task addTask(long tenantId, String projectId, String goalId, Task task) {
 		
 		   // the query object
-        final BasicQuery query1 = new BasicQuery(Criteria.where("projectId").is(projectId).andOperator(
+        final BasicQuery query1 = new BasicQuery(Criteria.where("projectId").is(projectId).and("tenantId").is(tenantId).andOperator(
             Criteria.where("goals").elemMatch(Criteria.where("goalId").is(goalId))).getCriteriaObject());
      
 		final Update update = new Update().addToSet("goals.$.tasks", task);
@@ -136,10 +187,12 @@ public class ProjectRepositoryImpl implements ProjectCustomRepository {
 		return task;
 	}
 
+
+
 	@Override
-	public Optional<Task> getTask(String projectId, String goalId, String taskId) {
+	public Optional<Task> getTask(long tenantId, String projectId, String goalId, String taskId) {
 		
-		return getGoal(projectId, goalId).map(g -> g.getTasks())
+		return getGoal(tenantId, projectId, goalId).map(Goal::getTasks)
 		 .flatMap( tasks -> tasks.stream().filter(t -> t.getTaskId().equals(taskId)).findFirst());
 		
 	/*		BasicQuery subQuery = new BasicQuery( Criteria.where("goalId").is(goalId).getCriteriaObject());
@@ -183,6 +236,11 @@ public class ProjectRepositoryImpl implements ProjectCustomRepository {
 
 		return Optional.of(tasks.get(0));*/
 	}
-	
+
+
+	public boolean existByProjectIdAndTenantId(String projectId, long tenantId){
+		Criteria criteria = Criteria.where("projectId").is(projectId).and("tenantId").is(tenantId);
+        return mongoTemplate.exists(new BasicQuery(criteria.getCriteriaObject()), Project.class);
+	}
 
 }

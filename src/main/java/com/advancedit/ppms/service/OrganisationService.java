@@ -33,11 +33,16 @@ public class OrganisationService {
     }
 
     
-    public Organisation getOrganisationById(String id){
-    	return organisationRepository.findById(id).orElseThrow(() ->  
+    public Organisation getOrganisationById(long tenantId, String id){
+    	return organisationRepository.findById(id)
+				.filter(o -> o.getTenantId() == tenantId)
+				.orElseThrow(() ->
     	new PPMSException(ErrorCode.ORGANISATION_ID_NOT_FOUND, String.format("Organisation id not found '%s'.", id)));
-    	
     }
+
+	public Optional<Organisation> getOrganisationByTenantId(long tenantId){
+		return Optional.ofNullable(organisationRepository.findByTenantId(tenantId));
+	}
     
     public Organisation addOrganisation(long tenantId, String username, Organisation organisation){
 		Optional.ofNullable(organisationRepository.findByTenantId(tenantId))
@@ -45,6 +50,7 @@ public class OrganisationService {
        	organisation.setId(null);
        	organisation.setTenantId(tenantId);
        	organisation.setUsername(username);
+       	organisation.setDepartments(null);
     	return organisationRepository.save(organisation);
     }
     
@@ -75,24 +81,24 @@ public class OrganisationService {
 	public String addDepartment(long tenantId, String organisationId, Department department) {
 		getOrganisationByIdAndTenantId(tenantId, organisationId);
 		department.setId(new ObjectId().toHexString());
-		return organisationRepository.addDepartment(organisationId, department).getId();
+		return organisationRepository.addDepartment(tenantId, organisationId, department).getId();
 	}
 
 	public String updateDepartment(long tenantId, String organisationId, String departmentId, Department department) {
 		getOrganisationByIdAndTenantId(tenantId, organisationId);
 		department.setId(departmentId);
-		organisationRepository.updateDepartment(organisationId, department);
+		organisationRepository.updateDepartment(tenantId, organisationId, department);
 		return departmentId;
 	}
 
-	public Department getDepartment(String organisationId, String departmentId) {
-		return organisationRepository.getDepartment(organisationId, departmentId)
+	public Department getDepartment(long tenantId, String organisationId, String departmentId) {
+		return organisationRepository.getDepartment(tenantId, organisationId, departmentId)
 				.orElseThrow(() -> new IllegalStateException(String.format("Department [%s] not found", departmentId)));
 	}
 
 	public void deleteDepartment(long tenantId, String organisationId, String departmentId) {
 		getOrganisationByIdAndTenantId(tenantId, organisationId);
-		 organisationRepository.deleteDepartment(organisationId, departmentId);
+		 organisationRepository.deleteDepartment(tenantId, organisationId, departmentId);
 
 	}
 
@@ -100,7 +106,7 @@ public class OrganisationService {
 	public String addSector(long tenantId, String organisationId, String departmentId, Sector sector) {
 		sector.setId(new ObjectId().toHexString());
 		getOrganisationByIdAndTenantId(tenantId, organisationId);
-		return organisationRepository.addSector(organisationId, departmentId, sector).getId();
+		return organisationRepository.addSector(tenantId, organisationId, departmentId, sector).getId();
 	}
 
 
@@ -110,8 +116,8 @@ public class OrganisationService {
 	}
 
 
-	public Sector getSector(String organisationId, String departmentId, String sectorId) {
-		return organisationRepository.getSector(organisationId, departmentId, sectorId)
+	public Sector getSector(long tenantId, String organisationId, String departmentId, String sectorId) {
+		return organisationRepository.getSector(tenantId, organisationId, departmentId, sectorId)
 				.orElseThrow(() -> new IllegalStateException(String.format("Sector [%s] not found", sectorId)));
 
 	}

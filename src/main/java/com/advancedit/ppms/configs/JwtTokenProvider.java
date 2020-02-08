@@ -6,11 +6,14 @@ import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 
+import com.advancedit.ppms.exceptions.ErrorCode;
+import com.advancedit.ppms.exceptions.PPMSException;
 import com.advancedit.ppms.utils.LoggedUserInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
@@ -29,15 +32,15 @@ public class JwtTokenProvider {
 	@Value("${security.jwt.token.secret-key:secret}")
     private String secretKey = "secret";
 	
-    @Value("${security.jwt.token.expire-length:3600000}")
-    private long validityInMilliseconds = 3600000; // 1h
+    @Value("${security.jwt.token.expire-length:7200000}")
+    private long validityInMilliseconds = 7200000; // 2h
 
     @PostConstruct
     protected void init() {
         secretKey = Base64.getEncoder().encodeToString(secretKey.getBytes());
     }
     
-    public String createToken(String username, Set<Role> set) {
+    /*public String createToken(String username, Set<Role> set) {
         Claims claims = Jwts.claims().setSubject(username);
         claims.put("roles", set);
         Date now = new Date();
@@ -48,12 +51,12 @@ public class JwtTokenProvider {
             .setExpiration(validity)//
             .signWith(SignatureAlgorithm.HS256, secretKey)//
             .compact();
-    }
+    }*/
 
-    public String createTokenWithTenantId(String username, long tenantId, Set<Role> set) {
+    public String createToken(String username, Set<Role> roles, long tenantId) {
         Claims claims = Jwts.claims().setSubject(username);
         if (tenantId > 0) claims = claims.setIssuer(Long.toString(tenantId));
-        claims.put("roles", set);
+        claims.put("roles", roles);
         Date now = new Date();
         Date validity = new Date(now.getTime() + validityInMilliseconds);
         return Jwts.builder()//
@@ -64,11 +67,7 @@ public class JwtTokenProvider {
                 .compact();
     }
     
-    public Authentication getAuthentication(String token) {
-        LoggedUserInfo loggedUserInfo = getUserInfoFromToken(token);
-        //TODO to add permission & roles
-        return new UsernamePasswordAuthenticationToken(loggedUserInfo, "", Collections.emptyList());
-    }
+
     
     public LoggedUserInfo getUserInfoFromToken(String token) {
         Claims body = Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token).getBody();
@@ -97,7 +96,8 @@ public class JwtTokenProvider {
             }
             return true;
         } catch (JwtException | IllegalArgumentException e) {
-            throw new JwtException("Expired or invalid JWT token");
+            throw new PPMSException(ErrorCode.TOKEN_EXPIRED, "Expired or invalid JWT token");
+            //throw new AuthenticationException( "Expired or invalid JWT token");
         }
     }
 }

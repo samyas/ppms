@@ -15,17 +15,13 @@ import com.advancedit.ppms.models.project.Project;
 @Repository
 public interface ProjectRepository extends MongoRepository<Project, String>, ProjectCustomRepository {
 	
-
-//	@Query("{$and: [{$or : [ { $where: '?0 == null' } , { personfunction :  ?0 } ]}, {$or : [ { $where: '?1 == null' } , { status : ?1  }] }]}")
-  //  public Page<Project> findByPersonFunctionAndStatus(PersonFunction personfunction, String status, Pageable pageable);
-
-	
 	@Query("{$and: [{$or : [ { $where: '?0 == null' } , { status : ?0  }]  },  {$or : [ { $where: '?1 == null' } , { firstName : { $regex: ?1, $options: 'i' }  }]  } ] }")
     public Page<Project> findByAllCriteria(String status,  String name, Pageable pageable);
 
 
-	@Query(value="{}", fields="{goals : 0}")
-	public Page<Project> findByAll(Pageable pageable);
+	@Query(value = "{$and: [{ tenantId :  ?0 }]}",  fields="{goals : 0}")
+	public Page<Project> findByAll(long tenantId, Pageable pageable);
+
 
 
 	 

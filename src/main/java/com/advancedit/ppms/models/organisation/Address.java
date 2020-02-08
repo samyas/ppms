@@ -1,15 +1,15 @@
 package com.advancedit.ppms.models.organisation;
 
 public class Address {
-	private String address;
+	private String street;
 	private String city;
 	private String zipCode;
 	private String country;
-	public String getAddress() {
-		return address;
+	public String getStreet() {
+		return street;
 	}
-	public void setAddress(String address) {
-		this.address = address;
+	public void setStreet(String street) {
+		this.street = street;
 	}
 	public String getCity() {
 		return city;

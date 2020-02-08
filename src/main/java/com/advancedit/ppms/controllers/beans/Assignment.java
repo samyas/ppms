@@ -39,7 +39,8 @@ public class Assignment {
 	public enum Position {
 		TEAM,
 		EXAMINATOR,
-		SUPERVISOR
+		SUPERVISOR,
+		REPORTER
 	}
 }
 

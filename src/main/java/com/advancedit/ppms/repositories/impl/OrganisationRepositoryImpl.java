@@ -37,8 +37,8 @@ public class OrganisationRepositoryImpl implements OrganisationCustomRepository 
 
 
 	@Override
-	public Department addDepartment(String organisationId, Department department) {
-		Criteria findDepartmentCriteria = Criteria.where("id").is(organisationId);
+	public Department addDepartment(long tenantId, String organisationId, Department department) {
+		Criteria findDepartmentCriteria = Criteria.where("id").is(organisationId).and("tenantId").is(tenantId);
 		final Update update = new Update().addToSet("departments", department);
 		final UpdateResult wr = mongoTemplate.updateFirst(new BasicQuery(findDepartmentCriteria.getCriteriaObject()), update, Organisation.class);
 		if (wr.getModifiedCount() != 1){
@@ -48,27 +48,27 @@ public class OrganisationRepositoryImpl implements OrganisationCustomRepository 
 	}
 
 	@Override
-	public void updateDepartment(String organisationId, Department department) {
+	public void updateDepartment(long tenantId, String organisationId, Department department) {
 
 	}
 
 	@Override
-	public Optional<Department> getDepartment(String organisationId, String departmentId) {
-		BasicQuery query = new BasicQuery( Criteria.where("id").is(organisationId).getCriteriaObject());
+	public Optional<Department> getDepartment(long tenantId, String organisationId, String departmentId) {
+		BasicQuery query = new BasicQuery( Criteria.where("id").is(organisationId).and("tenantId").is(tenantId).getCriteriaObject());
 		query.fields().elemMatch("departments", Criteria.where("id").is(departmentId));
 		Organisation ps = mongoTemplate.findOne(query,  Organisation.class);
 		return (ps.getDepartments() != null && ps.getDepartments().size() == 1) ? Optional.of(ps.getDepartments().get(0)) : Optional.empty() ;
 	}
 
 	@Override
-	public void deleteDepartment(String organisationId, String departmentId) {
+	public void deleteDepartment(long tenantId, String organisationId, String departmentId) {
 
 	}
 
 	@Override
-	public Sector addSector(String organisationId, String departmentId, Sector sector) {
+	public Sector addSector(long tenantId, String organisationId, String departmentId, Sector sector) {
 		// the query object
-		final BasicQuery query1 = new BasicQuery(Criteria.where("id").is(organisationId).andOperator(
+		final BasicQuery query1 = new BasicQuery(Criteria.where("id").is(organisationId).and("tenantId").is(tenantId).andOperator(
 				Criteria.where("departments").elemMatch(Criteria.where("id").is(departmentId))).getCriteriaObject());
 
 		final Update update = new Update().addToSet("departments.$.sectors", sector);
@@ -80,8 +80,8 @@ public class OrganisationRepositoryImpl implements OrganisationCustomRepository 
 	}
 
 	@Override
-	public Optional<Sector> getSector(String organisationId, String departmentId, String sectorId) {
-		return getDepartment(organisationId, departmentId).map(Department::getSectors)
+	public Optional<Sector> getSector(long tenantId, String organisationId, String departmentId, String sectorId) {
+		return getDepartment(tenantId, organisationId, departmentId).map(Department::getSectors)
 				.flatMap( tasks -> tasks.stream().filter(t -> t.getId().equals(sectorId)).findFirst());
 	}
 }

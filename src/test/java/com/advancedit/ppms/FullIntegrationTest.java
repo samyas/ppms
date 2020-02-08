@@ -1,29 +1,28 @@
 package com.advancedit.ppms;
-
+/*
+import com.advancedit.ppms.controllers.beans.AuthResponseBean;
+import com.advancedit.ppms.controllers.beans.OrganisationShortBean;
+import com.advancedit.ppms.controllers.beans.RegisterUserBean;
 import com.advancedit.ppms.models.organisation.Department;
 import com.advancedit.ppms.models.organisation.Sector;
 import com.advancedit.ppms.models.person.PersonFunction;
 import com.advancedit.ppms.repositories.UserRepository;
 import com.advancedit.ppms.repositories.VerificationTokenRepository;
-import org.bson.types.ObjectId;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 
-import static org.junit.Assert.*;
+import static java.util.Arrays.asList;
 
 import java.util.*;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.skyscreamer.jsonassert.JSONAssert;
-import org.springframework.aop.aspectj.SingletonAspectInstanceFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.web.server.LocalServerPort;
-import org.springframework.context.annotation.ImportResource;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -32,25 +31,17 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.junit4.SpringRunner;
-import org.springframework.test.web.servlet.MockMvc;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.hamcrest.CoreMatchers.is;
 
 import com.advancedit.ppms.controllers.AuthBody;
 import com.advancedit.ppms.models.organisation.Address;
 import com.advancedit.ppms.models.organisation.Organisation;
 import com.advancedit.ppms.models.person.Person;
-import com.advancedit.ppms.models.project.Goal;
-import com.advancedit.ppms.models.project.GoalStatus;
 import com.advancedit.ppms.models.project.Project;
 import com.advancedit.ppms.models.project.ProjectStatus;
-import com.advancedit.ppms.models.project.ProjectSummary;
-import com.advancedit.ppms.models.project.Task;
 import com.advancedit.ppms.models.user.Role;
 import com.advancedit.ppms.models.user.User;
-import com.advancedit.ppms.service.ProjectService;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -71,7 +62,7 @@ public class FullIntegrationTest {
 	 
 	@Before
 	public void init() {
-		headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON_UTF8));
+		headers.setAccept(asList(MediaType.APPLICATION_JSON_UTF8));
 	
 	}
 	 
@@ -82,8 +73,14 @@ public class FullIntegrationTest {
 	
 	@Test
 	public void fullTest() throws Exception {
+
+		String superAdminSecurityToken1 = login("asamet", "toutou");
+		Page<User> users = getUsers(superAdminSecurityToken1);
+
+
 		//Register User
-		User accountCreatorUserInput = registerUser(1, true);
+		String managerEmail =  "test1@gmail.com";
+		RegisterUserBean accountCreatorUserInput = registerUser(managerEmail, 1, true);
 		User accountCreatorUser = userRepository.findByEmail(accountCreatorUserInput.getEmail());
 
 		//Validate Email
@@ -98,17 +95,21 @@ public class FullIntegrationTest {
 		//Login with User
 		String adminCreatorSecurityToken = login(accountCreatorUser.getUsername(), accountCreatorUserInput.getPassword());
 
+	//	List<OrganisationShortBean> organisationShortBeans =  getAvailableOrganisations(adminCreatorSecurityToken);
+	//	Assert.assertEquals(1, organisationShortBeans.size());
+
+	//	adminCreatorSecurityToken = linkOrganisation(adminCreatorSecurityToken, organisationShortBeans.get(0).getTenantId() );
 		//Organisation
 		createOrganisation(adminCreatorSecurityToken);
 
 		//Person
-		Person person = aPerson(1);
+		Person person = aPerson(12);
 		person.setPersonfunction(PersonFunction.TEACHER);
 		String personId = addPerson(adminCreatorSecurityToken, person);
 		assertEquals(person, getPerson(adminCreatorSecurityToken, personId));
 
 		//Register User
-		User user = registerUser(2, false);
+		RegisterUserBean user = registerUser(person.getEmail(), 12, false);
 
 
 		//login
@@ -119,12 +120,15 @@ public class FullIntegrationTest {
 		//Super Admin Account Validation
 		//Login
 		String userSecurityToken = login(user.getUsername(), user.getPassword());
+
+		List<OrganisationShortBean> organisationShortBeans =  getAvailableOrganisations(userSecurityToken);
+		Assert.assertEquals(1, organisationShortBeans.size());
+
+		userSecurityToken = linkOrganisation(userSecurityToken, organisationShortBeans.get(0).getTenantId() );
+
 		Project project = aProject(1);
 			String projectId = addPProject(userSecurityToken, project);
-		assertEquals(null, getProject(userSecurityToken, projectId));
-
-
-
+		assertEquals(project, getProject(userSecurityToken, projectId));
 
 	}
 
@@ -244,18 +248,18 @@ public class FullIntegrationTest {
 
 
 
-	public User registerUser(int index, boolean isCreator) throws Exception {
-	    String email = "test"+index+"@gmail.com";
+	public RegisterUserBean registerUser(String email, int index, boolean isCreator) throws Exception {
+	 //   String email =;
 	    Set<Role> roles = new HashSet<>();
-	    roles.add(Role.ADMIN_CREATOR);
-		User user = new User();
+	   // roles.add(Role.ADMIN_CREATOR);
+		RegisterUserBean user = new RegisterUserBean();
 				user.setEmail(email);
 				user.setUsername("userName" + index);
 				user.setPassword("password");
-				user.setOrganisationCreationRequest(isCreator);
+				user.setCreator(isCreator);
 				user.setMessage("mmmmmmmm");
 		//user
-		  HttpEntity<User> entity = new HttpEntity<User>(user, getHeaders());
+		  HttpEntity<RegisterUserBean> entity = new HttpEntity<>(user, getHeaders());
 	        ResponseEntity<Void> response = restTemplate.exchange(
 	          createURLWithPort("/api/auth/register"), HttpMethod.POST, entity, Void.class);
 	   
@@ -290,12 +294,42 @@ public class FullIntegrationTest {
 		Assert.assertEquals(status, HttpStatus.NO_CONTENT);
 	}
 
+	public String linkOrganisation(String securityToken, long tenantId) throws Exception {
+		HttpEntity<String> entity = new HttpEntity<>(null, getHeadersWithSecurityToken(securityToken));
+		ResponseEntity<String> response = restTemplate.exchange(
+				createURLWithPort("/api/auth/link?id=" + tenantId), HttpMethod.GET, entity, String.class);
+
+		HttpStatus status = response.getStatusCode();
+		Assert.assertEquals(status, HttpStatus.OK);
+		return response.getBody();
+	}
+
+	public List<OrganisationShortBean> getAvailableOrganisations(String securityToken) throws Exception {
+		HttpEntity<String> entity = new HttpEntity<>(null, getHeadersWithSecurityToken(securityToken));
+		ResponseEntity<OrganisationShortBean[]> response = restTemplate.exchange(
+				createURLWithPort("/api/auth/organisations"), HttpMethod.GET, entity, OrganisationShortBean[].class);
+
+		HttpStatus status = response.getStatusCode();
+		Assert.assertEquals(status, HttpStatus.OK);
+		return asList(response.getBody());
+	}
+
+	public Page<User> getUsers(String securityToken) throws Exception {
+		HttpEntity<String> entity = new HttpEntity<>(null, getHeadersWithSecurityToken(securityToken));
+		ResponseEntity<Page<User>> response = restTemplate.exchange(
+				createURLWithPort("/api/auth/users/paged?page=0&size=10"), HttpMethod.GET, entity,new ParameterizedTypeReference<Page<User>>() {});
+
+
+		HttpStatus status = response.getStatusCode();
+		Assert.assertEquals(status, HttpStatus.OK);
+		return response.getBody();
+	}
 
 	public String createNewOrganisation(String token) throws Exception {
 		
 		
 	    Address address = new Address();
-	    address.setAddress("Rue rooddde 13");
+	    address.setStreet("Rue rooddde 13");
 	    address.setCity("Brussels");
 	    address.setZipCode("1030");
 	    address.setCountry("BE");
@@ -327,7 +361,7 @@ public class FullIntegrationTest {
 	        Assert.assertEquals(organisation.getDescription(), savedOrganisation.getDescription());
 	        Assert.assertEquals(organisation.getAddress().getCity(), savedOrganisation.getAddress().getCity());
 		       
-	        Assert.assertEquals(organisation.getAddress().getAddress(), savedOrganisation.getAddress().getAddress());
+	        Assert.assertEquals(organisation.getAddress().getStreet(), savedOrganisation.getAddress().getStreet());
 			  
 	        
 	        return organisationId;
@@ -344,15 +378,15 @@ public class FullIntegrationTest {
 				
 		//user
 		  HttpEntity<AuthBody> entity1 = new HttpEntity<AuthBody>(authBody, getHeaders());
-	        ResponseEntity<String> response1 = restTemplate.exchange(
-	          createURLWithPort("/api/auth/login"), HttpMethod.POST, entity1, String.class);
+	        ResponseEntity<AuthResponseBean> response1 = restTemplate.exchange(
+	          createURLWithPort("/api/auth/login"), HttpMethod.POST, entity1, AuthResponseBean.class);
 	   
 	        HttpStatus status1 =      response1.getStatusCode();
 	        Assert.assertEquals(status1, HttpStatus.OK);
-	        String token = response1.getBody();
-	        Assert.assertNotNull(token);
+		AuthResponseBean authResponseBean = response1.getBody();
+	        Assert.assertNotNull(authResponseBean);
 	        
-	        return token;
+	        return authResponseBean.getToken();
 		
 	}
 
@@ -374,7 +408,7 @@ public class FullIntegrationTest {
 			      .andExpect(status().isOk())
 			      .andExpect(content()
 			      .contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-			      .andExpect(jsonPath("$[0].name", is("bob")));*/
+			      .andExpect(jsonPath("$[0].name", is("bob")));
 		
 	}
 	
@@ -385,7 +419,7 @@ public class FullIntegrationTest {
 
 	 private Organisation anOrganisation(String name){
 		 Address address = new Address();
-		 address.setAddress("Rue rooddde 13");
+		 address.setStreet("Rue rooddde 13");
 		 address.setCity("Brussels");
 		 address.setZipCode("1030");
 		 address.setCountry("BE");
@@ -434,7 +468,7 @@ public class FullIntegrationTest {
 		 Assert.assertEquals(expected.getName(), saved.getName());
 		 Assert.assertEquals(expected.getDescription(), saved.getDescription());
 		 Assert.assertEquals(expected.getAddress().getCity(), saved.getAddress().getCity());
-		 Assert.assertEquals(expected.getAddress().getAddress(), saved.getAddress().getAddress());
+		 Assert.assertEquals(expected.getAddress().getStreet(), saved.getAddress().getStreet());
 	 }
 
 	void assertEquals(Person expected, Person saved){
@@ -462,7 +496,7 @@ public class FullIntegrationTest {
 
 	private HttpHeaders getHeaders(){
 		HttpHeaders headers = new HttpHeaders();
-		headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON_UTF8));
+		headers.setAccept(asList(MediaType.APPLICATION_JSON_UTF8));
 		return headers;
 	}
 
@@ -474,4 +508,4 @@ public class FullIntegrationTest {
 
 	
 }
-
+*/

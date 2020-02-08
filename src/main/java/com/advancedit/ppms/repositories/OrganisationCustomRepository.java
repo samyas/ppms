@@ -7,15 +7,15 @@ import java.util.Optional;
 
 public interface OrganisationCustomRepository {
 
-    Department addDepartment(String organisationId, Department department);
+    Department addDepartment(long tenantId, String organisationId, Department department);
 
-    void updateDepartment(String organisationId, Department department);
+    void updateDepartment(long tenantId, String organisationId, Department department);
 
-    Optional<Department> getDepartment(String organisationId, String departmentId);
+    Optional<Department> getDepartment(long tenantId, String organisationId, String departmentId);
 
-    void deleteDepartment(String organisationId, String departmentId);
+    void deleteDepartment(long tenantId, String organisationId, String departmentId);
 
-    Sector addSector(String organisationId, String departmentId, Sector sector);
+    Sector addSector(long tenantId, String organisationId, String departmentId, Sector sector);
 
-    Optional<Sector> getSector(String organisationId, String departmentId, String sectorId);
+    Optional<Sector> getSector(long tenantId, String organisationId, String departmentId, String sectorId);
 }
