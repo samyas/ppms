@@ -1,4 +1,4 @@
-
+/*
 package com.advancedit.ppms;
 
 import com.advancedit.ppms.controllers.beans.Assignment;
@@ -75,7 +75,7 @@ public class ProjectServiceTest {
 		
 	}
 	
-	/*
+
 	
 	@Test
 	public void saveProjects() {
@@ -276,7 +276,7 @@ public class ProjectServiceTest {
 		
 
 		
-	}*/
+	}
 
 	
 	public void addProjects() {
@@ -310,3 +310,4 @@ public class ProjectServiceTest {
 
 }
 
+*/
