@@ -6,6 +6,9 @@ public enum ErrorCode {
 	UNKNOW_ERROR_OCCURED("global.unkhnown.error"),
 
 	TOKEN_EXPIRED("token.expired"),
+	INVALID_USERNAME_PASSWORD("unvalid.username.password"),
+
+	ACTIVATION_TOKEN_EXPIRED("activation.code.unvalid"),
 	
 	//AUTH
 	UNAUTHORIZED("unauthorized"),
@@ -17,8 +20,8 @@ public enum ErrorCode {
 	//USER MODULE
 	USER_USERNAME_NOT_FOUND("user.username.not.found"),
 	USER_ID_NOT_FOUND("user.id.not.found"),
-	USER_EMAIL_ALREADY_EXIST("error.email.emailExist"),
-	USER_USERNAME_ALREADY_EXIST("error.username.userExist"),
+	USER_EMAIL_ALREADY_EXIST("error.email.exist"),
+	USER_USERNAME_ALREADY_EXIST("error.user.exist"),
 	
 	//PERSON MODULE
 	PERSON_ID_NOT_FOUND("person.id.not.found"),
@@ -42,7 +45,7 @@ public enum ErrorCode {
 	
 	//EMAIL MODULE
 	EMAIL_ID_NOT_FOUND("email.id.not.found"),
-	EMAIL_NAME_ALREADY_EXIST("error.name.emailNameExist"),
+	EMAIL_NAME_ALREADY_EXIST("error.email.exist"),
 	
 	EMAILS_NOT_SENT_SUCCESSFULLY("email.not.sent.successfully"),
 	

@@ -14,13 +14,16 @@ public class Department {
 	@Id
 	private String id;
 	private String name;
+	private String code;
 	private String description;
 	private String longDescription;
 	private String email;
+	private String type;
+	private String subType;
 	private Address address;
 	private String phone;
 	private String contactEmail;
-	private List<ShortPerson> reponsibles = new ArrayList<>();
+	private ShortPerson responsible;
 	private List<Sector> sectors = new ArrayList<>();
     
     
@@ -121,19 +124,29 @@ public class Department {
 		this.contactEmail = contactEmail;
 	}
 
-
-
-	public List<ShortPerson> getReponsibles() {
-		return reponsibles;
+	public ShortPerson getResponsible() {
+		return responsible;
 	}
 
-
-
-	public void setReponsibles(List<ShortPerson> reponsibles) {
-		this.reponsibles = reponsibles;
+	public void setResponsible(ShortPerson responsible) {
+		this.responsible = responsible;
 	}
 
+	public String getType() {
+		return type;
+	}
 
+	public void setType(String type) {
+		this.type = type;
+	}
+
+	public String getSubType() {
+		return subType;
+	}
+
+	public void setSubType(String subType) {
+		this.subType = subType;
+	}
 
 	public List<Sector> getSectors() {
 		return sectors;
@@ -146,6 +159,11 @@ public class Department {
 	}
 
 
-	
-    
+	public String getCode() {
+		return code;
+	}
+
+	public void setCode(String code) {
+		this.code = code;
+	}
 }

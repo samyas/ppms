@@ -19,10 +19,14 @@ public interface ProjectRepository extends MongoRepository<Project, String>, Pro
     public Page<Project> findByAllCriteria(String status,  String name, Pageable pageable);
 
 
-	@Query(value = "{$and: [{ tenantId :  ?0 }]}",  fields="{goals : 0}")
-	public Page<Project> findByAll(long tenantId, Pageable pageable);
+/*	@Query(value = "{$and: " +
+			"[" +
+			       "{ tenantId :  ?0 }, " +
+			       "{$or : [ { $where: '?1 == null' } , { departmentId :  ?1 } ]}," +
+			"]}",  fields="{goals : 0}")
+	public Page<Project> findByAll(long tenantId, String departmentId, Pageable pageable);
 
-
+*/
 
 	 
 

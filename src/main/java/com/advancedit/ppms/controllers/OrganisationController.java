@@ -3,9 +3,11 @@ package com.advancedit.ppms.controllers;
 import java.util.List;
 import java.util.Optional;
 
+import com.advancedit.ppms.controllers.beans.OrganisationResource;
 import com.advancedit.ppms.exceptions.ErrorCode;
 import com.advancedit.ppms.exceptions.PPMSException;
 import com.advancedit.ppms.models.user.Role;
+import com.advancedit.ppms.service.PersonService;
 import com.advancedit.ppms.utils.SecurityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -21,6 +23,7 @@ import com.advancedit.ppms.models.organisation.Sector;
 import com.advancedit.ppms.repositories.OrganisationRepository;
 import com.advancedit.ppms.service.OrganisationService;
 
+import static com.advancedit.ppms.controllers.presenter.OrganisationPresenter.toResource;
 import static com.advancedit.ppms.utils.SecurityUtils.*;
 
 @RestController
@@ -28,6 +31,9 @@ public class OrganisationController {
 
 	@Autowired
     OrganisationService organisationService;
+
+    @Autowired
+    PersonService personService;
 
    @RequestMapping(method=RequestMethod.GET, value="/api/organisations")
     public List<Organisation> organisations() {
@@ -38,13 +44,14 @@ public class OrganisationController {
     @RequestMapping(method=RequestMethod.POST, value="/api/organisations")
     public String save(@RequestBody Organisation organisation) {
         hasRole(Role.ADMIN_CREATOR);
-       return organisationService.addOrganisation(getCurrentTenantId(), getLoggedUserInfo().getUsername(),  organisation).getId();
+       return organisationService.addOrganisation(getCurrentTenantId(), getLoggedUserInfo().getEmail(),  organisation).getId();
     }
 
     @RequestMapping(method=RequestMethod.GET, value="/api/organisations/connected/user")
-    public Organisation getDetailByUser() {
-        return organisationService.getOrganisationByTenantId(getCurrentTenantId()).orElseThrow(() ->
+    public OrganisationResource getDetailByUser() {
+        Organisation organisation = organisationService.getOrganisationByTenantId(getCurrentTenantId()).orElseThrow(() ->
                 new PPMSException(ErrorCode.ORGANISATION_ID_NOT_FOUND, "No organisation found linked to the connected user"));
+       return toResource(organisation, personService.getPersonByEmail(getCurrentTenantId(), organisation.getResponsibleEmail()));
     }
 
     @RequestMapping(method=RequestMethod.GET, value="/api/organisations/{organisationId}")
@@ -55,7 +62,7 @@ public class OrganisationController {
 
     @RequestMapping(method=RequestMethod.PUT, value="/api/organisations/{organisationId}")
     public String update(@PathVariable String organisationId, @RequestBody Organisation organisation) {
-        hasAnyRole(Role.ADMIN_CREATOR, Role.ADMIN);
+        hasAnyRole(Role.ADMIN_CREATOR, Role.SUPER_ADMIN);
         organisation.setId(organisationId);
         organisationService.updateOrganisation(getCurrentTenantId(), organisation);
         return organisationId;
@@ -71,13 +78,13 @@ public class OrganisationController {
     //Department Management
     @RequestMapping(method=RequestMethod.POST, value="/api/organisations/{organisationId}/departments")
     public String addDepartment(@PathVariable String organisationId, @RequestBody Department department) {
-        hasAnyRole(Role.ADMIN_CREATOR, Role.ADMIN);
+        hasAnyRole(Role.ADMIN_CREATOR, Role.SUPER_ADMIN);
         return organisationService.addDepartment(getCurrentTenantId(), organisationId, department);
     }
     
     @RequestMapping(method=RequestMethod.PUT, value="/api/organisations/{organisationId}/departments/{departmentId}")
     public String updateDepartment(@PathVariable String organisationId, @PathVariable String departmentId, @RequestBody Department department) {
-        hasAnyRole(Role.ADMIN_CREATOR, Role.ADMIN);
+        hasAnyRole(Role.ADMIN_CREATOR, Role.SUPER_ADMIN);
     	   return organisationService.updateDepartment(getCurrentTenantId(),organisationId, departmentId, department);
     }
     
@@ -88,20 +95,20 @@ public class OrganisationController {
     
     @RequestMapping(method=RequestMethod.DELETE, value="/api/organisations/{organisationId}/departments/{departmentId}")
     public void deleteDepartment(@PathVariable String organisationId, @PathVariable String departmentId) {
-        hasAnyRole(Role.ADMIN_CREATOR, Role.ADMIN);
+        hasAnyRole(Role.ADMIN_CREATOR, Role.SUPER_ADMIN);
         organisationService.deleteDepartment(getCurrentTenantId(), organisationId, departmentId);
     }
     
     //Sector Management
     @RequestMapping(method=RequestMethod.POST, value="/api/organisations/{organisationId}/departments/{departmentId}/sectors")
     public String addSector(@PathVariable String organisationId, @PathVariable String departmentId, @RequestBody Sector sector) {
-        hasAnyRole(Role.ADMIN_CREATOR, Role.ADMIN);
+        hasAnyRole(Role.ADMIN_CREATOR, Role.SUPER_ADMIN);
     	   return organisationService.addSector(getCurrentTenantId(), organisationId, departmentId, sector);
     }
     
     @RequestMapping(method=RequestMethod.PUT, value="/api/organisations/{organisationId}/departments/{departmentId}/sectors/{sectorId}")
     public String updateSector(@PathVariable String organisationId, @PathVariable String departmentId, @PathVariable String sectorId, @RequestBody Sector sector) {
-        hasAnyRole(Role.ADMIN_CREATOR, Role.ADMIN);
+        hasAnyRole(Role.ADMIN_CREATOR, Role.SUPER_ADMIN);
         return organisationService.updateSector(getCurrentTenantId(), organisationId, departmentId, sectorId, sector).getId();
     }
     
@@ -113,7 +120,7 @@ public class OrganisationController {
     
     @RequestMapping(method=RequestMethod.DELETE, value="/api/organisations/{organisationId}/departments/{departmentId}/sectors/{sectorId}")
     public void deleteSector(@PathVariable String organisationId, @PathVariable String departmentId, @PathVariable String sectorId) {
-        hasAnyRole(Role.ADMIN_CREATOR, Role.ADMIN);
+        hasAnyRole(Role.ADMIN_CREATOR, Role.SUPER_ADMIN);
         organisationService.deleteSector(getCurrentTenantId(), organisationId, departmentId, sectorId);
     }
 

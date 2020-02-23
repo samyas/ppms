@@ -34,15 +34,17 @@ public class ExceptionHandlerControllerAdvice extends ResponseEntityExceptionHan
 
     @ExceptionHandler(PPMSException.class)
     protected ResponseEntity<Object> handlePPMSException(
-            PPMSException ex) {
-        return buildResponseEntity(getStatus(ex), ex.getMessage());
+            PPMSException ex,   final HttpServletRequest request) {
+      //  return buildResponseEntity(getStatus(ex), ex.getMessage());
+        return new ResponseEntity<>(new ErrorResponse(ex, request.getRequestURI()), getStatus(ex));
     }
 
 
     @ExceptionHandler(Exception.class)
     protected ResponseEntity<Object> handleGlobalException(
-            PPMSException ex) {
-        return buildResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
+            Exception ex,  final HttpServletRequest request) {
+        return new ResponseEntity<>(new ErrorResponse(ex, request.getRequestURI()), HttpStatus.INTERNAL_SERVER_ERROR);
+    //    return buildResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
     }
 
     private ResponseEntity<Object> buildResponseEntity(HttpStatus status, String message) {

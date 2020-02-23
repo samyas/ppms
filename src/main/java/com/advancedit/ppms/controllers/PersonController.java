@@ -1,11 +1,18 @@
 package com.advancedit.ppms.controllers;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
+import com.advancedit.ppms.controllers.beans.PersonResource;
+import com.advancedit.ppms.exceptions.ErrorCode;
+import com.advancedit.ppms.exceptions.PPMSException;
+import com.advancedit.ppms.models.organisation.Organisation;
 import com.advancedit.ppms.models.user.Role;
-import com.advancedit.ppms.utils.SecurityUtils;
+import com.advancedit.ppms.service.OrganisationService;
+import com.advancedit.ppms.utils.LoggedUserInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -17,6 +24,7 @@ import com.advancedit.ppms.models.person.Person;
 import com.advancedit.ppms.models.person.PersonFunction;
 import com.advancedit.ppms.service.PersonService;
 
+import static com.advancedit.ppms.controllers.presenter.PersonPresenter.toResource;
 import static com.advancedit.ppms.utils.SecurityUtils.*;
 
 @RestController
@@ -25,48 +33,75 @@ public class PersonController {
 	@Autowired
     PersonService personService;
 
+    @Autowired
+    OrganisationService organisationService;
+
     @RequestMapping(method=RequestMethod.GET, value="/api/persons")
     public List<Person> all() {
         return  personService.getAllPersons(getCurrentTenantId());
     }
     
     @RequestMapping(method=RequestMethod.GET, value="/api/persons/paged")
-    public Page<Person> getPagedPerson(	@RequestParam("page") int page, @RequestParam("size") int size, 
-    		@RequestParam(value = "function", required = false)PersonFunction personFunction,  @RequestParam(value = "status", required = false)String status,
-    		@RequestParam(value = "name", required = false)String name) {
-		return personService.getPagedListPerson(getCurrentTenantId(), page, size, personFunction, status, name);
-	}
+    public Page<PersonResource> getPagedPerson(@RequestParam("page") int page, @RequestParam("size") int size,
+                                               @RequestParam(value = "function", required = false) PersonFunction personFunction,
+                                               @RequestParam(value = "status", required = false) String status,
+                                               @RequestParam(value = "name", required = false) String name) {
+        hasAnyRole(Role.SUPER_ADMIN, Role.ADMIN_CREATOR, Role.MODULE_LEADER, Role.STAFF);
+        LoggedUserInfo loggedUserInfo = getLoggedUserInfo();
+        Person person = personService.getPersonByEmail(loggedUserInfo.getTenantId(), loggedUserInfo.getEmail());
+        Page<Person> pagedListPerson = personService.getPagedListPerson(getCurrentTenantId(), page, size, person.getDepartmentId(), personFunction,
+                status, name);
+        Organisation organisation = organisationService.getOrganisationByTenantId(loggedUserInfo.getTenantId())
+                .orElseThrow(() -> new PPMSException(ErrorCode.ORGANISATION_ID_NOT_FOUND, "Organisation was not found"));
+        List<PersonResource> collect = pagedListPerson.stream().map(p -> toResource(p, organisation)).collect(Collectors.toList());
+        return new PageImpl<>(collect, pagedListPerson.getPageable(), pagedListPerson.getTotalElements());
+
+    }
 
     @RequestMapping(method=RequestMethod.POST, value="/api/persons")
     public String save(@RequestBody Person person) {
-        hasAnyRole(Role.ADMIN, Role.ADMIN_CREATOR);
-    	return personService.addPerson(getCurrentTenantId(), person, true).getId();
+        hasAnyRole(Role.SUPER_ADMIN, Role.ADMIN_CREATOR);
+    	return personService.addPerson(getCurrentTenantId(), person).getId();
     }
     
     @RequestMapping(method=RequestMethod.PUT, value="/api/persons/{id}")
     public String update(@PathVariable String id, @RequestBody Person person) {
     	person.setId(id);
-    	if (! isHasAnyRole(Role.ADMIN, Role.ADMIN_CREATOR)){
-    	    person.setValid(false);
+    	if (! isHasAnyRole(Role.SUPER_ADMIN, Role.ADMIN_CREATOR)){
+    	    person.setRegistered(false);
         }
     	return personService.updatePerson(getCurrentTenantId(), person).getId();
     }
 
     @RequestMapping(method=RequestMethod.PUT, value="/api/persons/{personId}/validate")
     public void validate(@PathVariable String personId) {
-        hasAnyRole(Role.ADMIN, Role.ADMIN_CREATOR);
+        hasAnyRole(Role.SUPER_ADMIN, Role.ADMIN_CREATOR);
          personService.validatePerson(getCurrentTenantId(), personId);
     }
 
 
     @RequestMapping(method=RequestMethod.GET, value="/api/persons/{id}")
-    public Person getDetail(@PathVariable String id) {
-    	return personService.getPersonById(getCurrentTenantId(), id);
+    public PersonResource getDetail(@PathVariable String id) {
+        LoggedUserInfo loggedUserInfo = getLoggedUserInfo();
+        Organisation organisation = organisationService.getOrganisationByTenantId(loggedUserInfo.getTenantId())
+                .orElseThrow(() -> new PPMSException(ErrorCode.ORGANISATION_ID_NOT_FOUND, "Organisation was not found"));
+        Person person = personService.getPersonById(getCurrentTenantId(), id);
+        return toResource(person, organisation);
+    }
+
+    @RequestMapping(method=RequestMethod.GET, value="/api/persons/current/info")
+    public PersonResource getCurrentDetail() {
+        LoggedUserInfo loggedUserInfo = getLoggedUserInfo();
+        Organisation organisation = organisationService.getOrganisationByTenantId(loggedUserInfo.getTenantId())
+                .orElseThrow(() -> new PPMSException(ErrorCode.ORGANISATION_ID_NOT_FOUND, "Organisation was not found"));
+        Person person = personService.getPersonByEmail(getCurrentTenantId(), loggedUserInfo.getEmail());
+        return toResource(person, organisation);
+
     }
 
     @RequestMapping(method=RequestMethod.DELETE, value="/api/persons/{id}")
     public void delete(@PathVariable String id) {
-        hasAnyRole(Role.ADMIN, Role.ADMIN_CREATOR);
+        hasAnyRole(Role.SUPER_ADMIN, Role.ADMIN_CREATOR);
          personService.delete(getCurrentTenantId(), id);
     }
 

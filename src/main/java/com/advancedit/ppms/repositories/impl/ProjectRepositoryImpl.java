@@ -13,6 +13,7 @@ import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.core.MappedDocument;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -67,6 +68,21 @@ public class ProjectRepositoryImpl implements ProjectCustomRepository {
 		
 		return null;
 	}
+
+	@Override
+	public Page<Project> findByAll(long tenantId, String departmentId, Pageable pageable){
+		Criteria criteria = Criteria.where("tenantId").is(tenantId);
+		if (departmentId != null) {
+			criteria = criteria.and("departmentId").is(departmentId);
+		}
+		Query query = new BasicQuery( criteria.getCriteriaObject()).with(pageable);
+		query.fields().exclude("goals");
+		List<Project> projects = mongoTemplate.find(query, Project.class);
+		long count = mongoTemplate.count(query, Project.class);
+		return  new PageImpl<>(projects , pageable, count);
+	}
+
+
 
 	@Override
 	public Optional<Goal> getGoal(long tenantId, String projectId, String goalId) {

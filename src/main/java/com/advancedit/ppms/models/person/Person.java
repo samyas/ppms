@@ -1,13 +1,13 @@
 package com.advancedit.ppms.models.person;
 
-import java.util.Date;
-import java.util.List;
-
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.format.annotation.DateTimeFormat;
+
+import java.util.Date;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -22,7 +22,8 @@ public class Person {
 	private String phone;
 	private String skype;
 	private String photoFileId;
-	private boolean valid = false;
+	private String departmentId;
+	private boolean registered = false;
 	private PersonFunction personfunction;
 	private String status;
 	private long tenantId;

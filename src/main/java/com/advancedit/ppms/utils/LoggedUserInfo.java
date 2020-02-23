@@ -11,7 +11,7 @@ import java.util.Set;
 @NoArgsConstructor
 public class LoggedUserInfo {
 
-    String username;
+    String email;
     long tenantId;
 
     Set<Role> roles;

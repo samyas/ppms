@@ -1,8 +1,13 @@
 package com.advancedit.ppms.service;
 
 import java.util.List;
+import java.util.Optional;
 
+import com.advancedit.ppms.models.organisation.Department;
+import com.advancedit.ppms.models.person.ShortPerson;
+import com.advancedit.ppms.models.user.ActivationToken;
 import com.advancedit.ppms.models.user.User;
+import com.advancedit.ppms.repositories.OrganisationRepository;
 import com.advancedit.ppms.repositories.UserRepository;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,17 +37,26 @@ public class PersonService {
 	@Autowired
 	private FileStorageRepository fileStorageRepository;
 
+	@Autowired
+	private OrganisationRepository organisationRepository;
+
+	@Autowired
+	private ActivationTokenService activationTokenService;
+
+	@Autowired
+	private EmailService emailService;
+
     public List<Person> getAllPersons(long tenantId){
     	return personRepository.findByTenantId(tenantId);
     }
     
-	public Page<Person> getPagedListPerson(long tenantId, int page, int size, PersonFunction function, String status, String name) {
+	public Page<Person> getPagedListPerson(long tenantId, int page, int size, String departmentId, PersonFunction function, String status, String name) {
 		Pageable pageableRequest =  PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "name"));
 		Page<Person> persons = null;
 		if (StringUtils.isEmpty(name)){
-			persons = personRepository.findByTenantIdAndPersonFunctionAndStatus(tenantId, function, status, pageableRequest);
+			persons = personRepository.findByTenantIdAndPersonFunctionAndStatus(tenantId, function, status, departmentId, pageableRequest);
 		}else{
-		    persons = personRepository.findByAllCriteria(tenantId, function, status, name, pageableRequest);
+		    persons = personRepository.findByAllCriteria(tenantId, function, status, name, departmentId, pageableRequest);
 		}
 		return persons;
 	}
@@ -57,18 +71,44 @@ public class PersonService {
 				.orElseThrow(() ->  new PPMSException(ErrorCode.PERSON_ID_NOT_FOUND, String.format("Person id not found '%s'.", id)));
     }
 
-
+	public Person addPersonAdminCreator(long tenantId, Person person){
+		if (personRepository.findByTenantIdAndEmail(tenantId, person.getEmail()) != null){
+			throw new PPMSException(ErrorCode.PERSON_EMAIL_ALREADY_EXIST, String.format("Email already exist '%s'.", person.getEmail()));
+		}
+		person.setId(null);
+		person.setTenantId(tenantId);
+		person.setPersonfunction(PersonFunction.ADMIN_CREATOR);
+		person.setRegistered(true);
+		return personRepository.save(person);
+	}
     
-    public Person addPerson(long tenantId, Person person, boolean isValid){
+    public Person addPerson(long tenantId, Person person){
        	if (personRepository.findByTenantIdAndEmail(tenantId, person.getEmail()) != null){
        		throw new PPMSException(ErrorCode.PERSON_EMAIL_ALREADY_EXIST, String.format("Email already exist '%s'.", person.getEmail()));
    	    }
-       	person.setId(null);
+       String organisationId =	organisationRepository.findByTenantId(tenantId).getId();
+      String departmentId = 	Optional.ofNullable(person.getDepartmentId())
+			   .orElseThrow(() -> new PPMSException("Department is mandatory"));
+
+		Department department = organisationRepository.getDepartment(tenantId, organisationId, departmentId)
+				.orElseThrow(() -> new PPMSException("Department was not found"));
+
+		person.setId(null);
 		person.setTenantId(tenantId);
-		person.setValid(isValid);
-    	return personRepository.save(person); 	
+		person.setRegistered(false);
+    	Person p =  personRepository.save(person);
+		if (PersonFunction.MODEL_LEADER.equals(person.getPersonfunction()) && department.getResponsible() == null){
+			department.setResponsible( new ShortPerson(p.getId(), p.getFirstName(), p.getLastName(), p.getPhotoFileId()));
+			organisationRepository.updateDepartment(tenantId, organisationId, department);
+		}
+		sendJoinInvitation(tenantId, p);
+		return p;
     }
-    
+
+	public void sendJoinInvitation(long tenantId, Person person){
+		ActivationToken activationToken = activationTokenService.generateActivationToken(tenantId, person.getEmail());
+		//emailService.send
+	}
     
     public Person updatePerson(long tenantId, Person person){
 		getPersonById(tenantId, person.getId());
@@ -78,7 +118,7 @@ public class PersonService {
 
 	public void validatePerson(long tenantId, String personId) {
 		Person person = getPersonById(tenantId, personId);
-		person.setValid(true);
+		person.setRegistered(true);
 		person = personRepository.save(person);
 		User user = userRepository.findByEmail(person.getEmail());
 		user.setEnabled(true);

@@ -1,11 +1,12 @@
 package com.advancedit.ppms;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 
+import com.advancedit.ppms.exceptions.PPMSException;
+import com.advancedit.ppms.models.organisation.Organisation;
+import com.advancedit.ppms.repositories.OrganisationRepository;
+import com.advancedit.ppms.service.SequenceGeneratorService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -29,9 +30,14 @@ public class PPMSApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(PPMSApplication.class, args);
 	}
+
+	@Autowired
+	private SequenceGeneratorService sequenceGeneratorService;
 	
 	@Bean
-	CommandLineRunner init(UserRepository userRepository, PersonRepository personRepository, ProjectRepository projectRepository, 
+	CommandLineRunner init(UserRepository userRepository, PersonRepository personRepository,
+						   ProjectRepository projectRepository, OrganisationRepository organisationRepository,
+						   SequenceGeneratorService sequenceGeneratorService,
 		
 			 PasswordEncoder bCryptPasswordEncoder) {
 
@@ -43,7 +49,7 @@ public class PPMSApplication {
 	    		
 	    		
 	    		User user1 = new User();
-	    		user1.setEmail("abdessalem.samet@gmail.com");
+	    		user1.setEmail("abdessalemsamet@gmail.com");
 	    		user1.setUsername("asamet");
 	    		user1.setPassword("toutou");
 	    		user1.setFirstName("SAMET");
@@ -54,9 +60,32 @@ public class PPMSApplication {
 	    		user1.setEnabled(true);
 	    	//	user1.setPermissions(new HashSet<>(Arrays.asList(Permission.CREATE_PROJECT, Permission.ASSIGN)));
 	    		
-	    		userRepository.save(user1);
-	    		
-	    		
+
+
+				long tenantId = sequenceGeneratorService.generateSequence(Organisation.SEQUENCE_NAME);
+
+				Organisation organisation = new Organisation() ;
+				organisation.setId(null);
+				organisation.setTenantId(tenantId);
+				organisation.setName("Default");
+				organisation.setDepartments(null);
+				 organisationRepository.save(organisation);
+
+				 user1.setDefaultTenantId(tenantId);
+				 user1.setTenantIds(Collections.singletonList(tenantId));
+
+
+				 Person person = new Person();
+				 person.setFirstName(user1.getFirstName());
+				 person.setLastName(user1.getLastName());
+				 person.setEmail(user1.getEmail());
+				 person.setPersonfunction(PersonFunction.ADMIN_CREATOR);
+				 person.setRegistered(true);
+				 person.setTenantId(tenantId);
+
+				 personRepository.save(person);
+
+				userRepository.save(user1);
 	    		
 	    	//	personRepository.saveAll(getDefaultPerson());
 	    		

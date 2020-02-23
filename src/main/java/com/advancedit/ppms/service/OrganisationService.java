@@ -5,9 +5,11 @@ import com.advancedit.ppms.exceptions.PPMSException;
 import com.advancedit.ppms.models.organisation.Department;
 import com.advancedit.ppms.models.organisation.Organisation;
 import com.advancedit.ppms.models.organisation.Sector;
+import com.advancedit.ppms.models.person.ShortPerson;
 import com.advancedit.ppms.repositories.FileStorageRepository;
 import com.advancedit.ppms.repositories.OrganisationRepository;
-import com.advancedit.ppms.repositories.UserRepository;
+import com.advancedit.ppms.repositories.PersonRepository;
+import org.apache.commons.lang3.StringUtils;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -22,6 +24,10 @@ public class OrganisationService {
 
 	@Autowired
 	private OrganisationRepository organisationRepository;
+
+
+	@Autowired
+	private PersonRepository personRepository;
 	
 	@Autowired
 	private FileStorageRepository fileStorageRepository;
@@ -44,12 +50,12 @@ public class OrganisationService {
 		return Optional.ofNullable(organisationRepository.findByTenantId(tenantId));
 	}
     
-    public Organisation addOrganisation(long tenantId, String username, Organisation organisation){
+    public Organisation addOrganisation(long tenantId, String email, Organisation organisation){
 		Optional.ofNullable(organisationRepository.findByTenantId(tenantId))
 				.ifPresent(o -> {throw new PPMSException("Organisation already created");});
        	organisation.setId(null);
        	organisation.setTenantId(tenantId);
-       	organisation.setUsername(username);
+       	organisation.setResponsibleEmail(email);
        	organisation.setDepartments(null);
     	return organisationRepository.save(organisation);
     }
@@ -77,10 +83,20 @@ public class OrganisationService {
 		
 	}
 
+	private ShortPerson getShortPerson(String personId) {
+		return personRepository.findById(personId)
+				.map(p -> new ShortPerson(p.getId(), p.getFirstName(), p.getLastName(), p.getPhotoFileId()))
+				.orElseThrow(() -> new PPMSException(ErrorCode.PERSON_ID_NOT_FOUND,
+						String.format("Person id not found '%s'.", personId)));
 
+	}
 	public String addDepartment(long tenantId, String organisationId, Department department) {
-		getOrganisationByIdAndTenantId(tenantId, organisationId);
+		//getOrganisationByIdAndTenantId(tenantId, organisationId);
 		department.setId(new ObjectId().toHexString());
+	/*	Optional<ShortPerson> responsable = Optional.ofNullable(department.getResponsible()).map(ShortPerson::getPersonId)
+				.filter(StringUtils::isNotBlank)
+				.map(this::getShortPerson);
+		responsable.ifPresent(department::setResponsible);*/
 		return organisationRepository.addDepartment(tenantId, organisationId, department).getId();
 	}
 

@@ -20,12 +20,28 @@ public interface PersonRepository extends MongoRepository<Person, String> {
 
 	Person findByTenantIdAndEmail(long tenantId, String email);
 
-	@Query("{$and: [ { tenantId :  ?0 } , {$or : [ { $where: '?1 == null' } , { personfunction :  ?1 } ]}, {$or : [ { $where: '?2 == null' } , { status : ?2  }] }]}")
-	Page<Person> findByTenantIdAndPersonFunctionAndStatus(long tenantId, PersonFunction personfunction, String status, Pageable pageable);
+	@Query("{$and: [ " +
+			          "{ tenantId :  ?0 } , " +
+			          "{$or : [ { $where: '?1 == null' } , { personfunction :  ?1 } ]}, " +
+			          "{$or : [ { $where: '?2 == null' } , { status : ?2  }         ]}" +
+		              "{$or : [ { $where: '?3 == null' } , { departmentId : ?3  }   ]}" +
+			       "]" +
+
+			"}"
+	)
+	Page<Person> findByTenantIdAndPersonFunctionAndStatus(long tenantId, PersonFunction personfunction, String status,
+														  String departmentId, Pageable pageable);
 
 
-	@Query("{$and: [{ tenantId :  ?0 } , {$or : [ { $where: '?1 == null' } , { personfunction :  ?1 } ]}, {$or : [ { $where: '?2 == null' } , { status : ?2  }]  },  {$or : [ { $where: '?3 == null' } , { firstName : { $regex: ?3, $options: 'i' }  }]  } ] }")
-	Page<Person> findByAllCriteria(long tenantId, PersonFunction personfunction, String status,  String name, Pageable pageable);
+	@Query("{$and: [" +
+						"{ tenantId :  ?0 } , " +
+						"{$or : [ { $where: '?1 == null' } , { personfunction :  ?1 } ]}, " +
+						"{$or : [ { $where: '?2 == null' } , { status : ?2  }]  }, " +
+						"{$or : [ { $where: '?3 == null' } , { firstName : { $regex: ?3, $options: 'i' }}]  }, " +
+			            "{$or : [ { $where: '?4 == null' } , { departmentId : ?4  }]  }, " +
+			"] }")
+	Page<Person> findByAllCriteria(long tenantId, PersonFunction personfunction, String status,  String name,
+								   String departmentId,  Pageable pageable);
 
 }
 

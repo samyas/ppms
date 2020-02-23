@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 
 import com.advancedit.ppms.models.person.ShortPerson;
+import com.advancedit.ppms.models.project.Project;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -14,6 +15,8 @@ import com.advancedit.ppms.models.project.Task;
 public interface ProjectCustomRepository {
 
 	Page<ProjectSummary> getPagedProjectSummary(long tenantId, int page, int size, Pageable pageable);
+
+	Page<Project> findByAll(long tenantId, String departmentId, Pageable pageable);
 	
 
     Optional<Goal> getGoal(long tenantId, String projectId, String goalId);

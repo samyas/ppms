@@ -1,10 +1,25 @@
 package com.advancedit.ppms.controllers;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
+import com.advancedit.ppms.controllers.beans.ProjectResource;
+import com.advancedit.ppms.controllers.presenter.ProjectPresenter;
+import com.advancedit.ppms.exceptions.ErrorCode;
+import com.advancedit.ppms.exceptions.PPMSException;
+import com.advancedit.ppms.models.organisation.Organisation;
+import com.advancedit.ppms.models.person.Person;
+import com.advancedit.ppms.models.person.ShortPerson;
+import com.advancedit.ppms.models.user.Role;
+import com.advancedit.ppms.service.OrganisationService;
+import com.advancedit.ppms.service.PersonService;
+import com.advancedit.ppms.utils.LoggedUserInfo;
 import com.advancedit.ppms.utils.SecurityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,7 +34,9 @@ import com.advancedit.ppms.models.project.Project;
 import com.advancedit.ppms.models.project.Task;
 import com.advancedit.ppms.service.ProjectService;
 
-import static com.advancedit.ppms.utils.SecurityUtils.getCurrentTenantId;
+import static com.advancedit.ppms.controllers.presenter.ProjectPresenter.toResource;
+import static com.advancedit.ppms.controllers.presenter.ProjectPresenter.toShortResource;
+import static com.advancedit.ppms.utils.SecurityUtils.*;
 
 @RestController
 public class ProjectController {
@@ -27,16 +44,29 @@ public class ProjectController {
 	@Autowired
     ProjectService projectService;
 
+    @Autowired
+    PersonService personService;
+
+    @Autowired
+    OrganisationService organisationService;
+
     @RequestMapping(method=RequestMethod.GET, value="/api/projects")
     public List<Project> all() {
         return  projectService.getAllProjects(getCurrentTenantId());
     }
     
     @RequestMapping(method=RequestMethod.GET, value="/api/projects/paged")
-    public Page<Project> getPagedProjects(	@RequestParam("page") int page, @RequestParam("size") int size, 
-    		 @RequestParam(name = "status", required=false)String status, @RequestParam(name = "name", required=false)String name) {
-		return projectService.getPagedListProject(getCurrentTenantId(), page, size, status, name);
-	}
+    public Page<ProjectResource> getPagedProjects(@RequestParam("page") int page, @RequestParam("size") int size,
+                                                  @RequestParam(name = "status", required=false)String status,
+                                                  @RequestParam(name = "name", required=false)String name) {
+        LoggedUserInfo loggedUserInfo = getLoggedUserInfo();
+        Person person = personService.getPersonByEmail(loggedUserInfo.getTenantId(), loggedUserInfo.getEmail());
+        Organisation organisation = organisationService.getOrganisationByTenantId(loggedUserInfo.getTenantId())
+               .orElseThrow(() -> new PPMSException(ErrorCode.ORGANISATION_ID_NOT_FOUND, "Organisation was not found"));
+        Page<Project> pagedListProject = projectService.getPagedListProject(getCurrentTenantId(), page, size, person.getDepartmentId(), status, name);
+        List<ProjectResource> collect = pagedListProject.stream().map(p -> toResource(p, organisation)).collect(Collectors.toList());
+        return new PageImpl<>(collect, pagedListProject.getPageable(), pagedListProject.getTotalElements());
+    }
     
     
     @RequestMapping(method=RequestMethod.POST, value="/api/projects/{projectId}/apply")
@@ -59,6 +89,9 @@ public class ProjectController {
 
     @RequestMapping(method=RequestMethod.POST, value="/api/projects")
     public String save(@RequestBody Project project) {
+        LoggedUserInfo loggedUserInfo = getLoggedUserInfo();
+        Person person = personService.getPersonByEmail(loggedUserInfo.getTenantId(), loggedUserInfo.getEmail());
+        project.setCreator(new ShortPerson(person.getId(), person.getFirstName(), person.getLastName(), person.getPhotoFileId()));
     	return projectService.addProject(getCurrentTenantId(), project).getProjectId();
     }
     
@@ -73,8 +106,27 @@ public class ProjectController {
     }
 
     @RequestMapping(method=RequestMethod.GET, value="/api/projects/{id}")
-    public Project show(@PathVariable String id) {
-    	return projectService.getProjectsById(getCurrentTenantId(), id);
+    public ProjectResource show(@PathVariable String id) {
+        LoggedUserInfo loggedUserInfo = getLoggedUserInfo();
+        Person person = personService.getPersonByEmail(loggedUserInfo.getTenantId(), loggedUserInfo.getEmail());
+        Organisation organisation = organisationService.getOrganisationByTenantId(loggedUserInfo.getTenantId())
+                .orElseThrow(() -> new PPMSException(ErrorCode.ORGANISATION_ID_NOT_FOUND, "Organisation was not found"));
+        boolean isAdmin = isHasAnyRole(Role.ADMIN_CREATOR, Role.SUPER_ADMIN);
+        Project project = projectService.getProjectsById(getCurrentTenantId(), id);
+        if(isAdmin) return toResource(project, organisation);
+        if (!project.getDepartmentId().equals(person.getDepartmentId()))
+            throw new PPMSException(ErrorCode.PROJECT_ID_NOT_FOUND, "Project not found");
+        return isBelongToProjectTeam(person.getId(), project) ? toResource(project, organisation)
+                : toShortResource(project, organisation);
+    }
+
+    private boolean isBelongToProjectTeam(String personId, Project project){
+        List<String> projectPersonIds = new ArrayList<>();
+        Optional.ofNullable(project.getCreator()).map(ShortPerson::getPersonId).ifPresent(projectPersonIds::add);
+        Optional.ofNullable(project.getSupervisor()).map(ShortPerson::getPersonId).ifPresent(projectPersonIds::add);
+        Optional.ofNullable(project.getExaminator()).map(ShortPerson::getPersonId).ifPresent(projectPersonIds::add);
+        project.getTeam().stream().map(ShortPerson::getPersonId).forEach(projectPersonIds::add);
+        return projectPersonIds.contains(personId);
     }
     
     

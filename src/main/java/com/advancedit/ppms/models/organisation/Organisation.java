@@ -29,9 +29,10 @@ public class Organisation {
 	private String email;
 	private Address address;
 	private String phone;
+	private String creationDate;
 	private String contactEmail;
 	private String logoId;
-	private String username;
+	private String responsibleEmail;
 
 
     

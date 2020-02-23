@@ -40,11 +40,11 @@ public class ProjectService {
 		return projectRepository.findAll();
 	}
 
-	public Page<Project> getPagedListProject(long tenantId, int page, int size, String status, String name) {
+	public Page<Project> getPagedListProject(long tenantId, int page, int size, String departmentId, String status, String name) {
 		Pageable pageableRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "name"));;
 		Page<Project> projects = null;
 	//	if (StringUtils.isEmpty(name) && StringUtils.isEmpty(status)) {
-			projects = projectRepository.findByAll(tenantId, pageableRequest);
+			projects = projectRepository.findByAll(tenantId, departmentId, pageableRequest);
 	//	} else {
 	//		projects = projectRepository.findByAllCriteria(status, name, pageableRequest);
 	//	}
@@ -58,7 +58,6 @@ public class ProjectService {
 	}
 
 	public Project getProjectsById(long tenantId, String id) {
-
 		return projectRepository.findById(id)
 				.filter(project -> project.getTenantId() == tenantId)
 				.orElseThrow(() -> new PPMSException(ErrorCode.PROJECT_ID_NOT_FOUND,

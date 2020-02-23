@@ -12,6 +12,7 @@ import com.advancedit.ppms.repositories.OrganisationCustomRepository;
 import com.advancedit.ppms.repositories.ProjectCustomRepository;
 import com.mongodb.client.result.UpdateResult;
 import org.apache.commons.lang3.ArrayUtils;
+import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -49,7 +50,13 @@ public class OrganisationRepositoryImpl implements OrganisationCustomRepository 
 
 	@Override
 	public void updateDepartment(long tenantId, String organisationId, Department department) {
-
+		Criteria findDepartmentCriteria = Criteria.where("id").is(organisationId).and("tenantId").is(tenantId);
+		final Update update = new Update().set("departments.$[i]", department)
+				.filterArray(Criteria.where("i._id").is(new ObjectId(department.getId())));
+		final UpdateResult wr = mongoTemplate.updateFirst(new BasicQuery(findDepartmentCriteria.getCriteriaObject()), update, Organisation.class);
+		if (wr.getModifiedCount() != 1){
+			throw new PPMSException("Unable to update Department");
+		}
 	}
 
 	@Override

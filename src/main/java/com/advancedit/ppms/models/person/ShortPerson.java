@@ -5,6 +5,10 @@ public class ShortPerson {
 	private String firstName;
 	private String lastName;
 	private String imageId;
+
+	public ShortPerson() {
+	}
+
 	public ShortPerson(String personId, String firstName, String lastName, String imageId) {
 		super();
 		this.personId = personId;

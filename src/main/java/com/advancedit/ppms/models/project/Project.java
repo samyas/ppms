@@ -39,7 +39,7 @@ public class Project {
     private ShortPerson examinator;
     private ShortPerson creator;
     private List<ShortPerson> assignedTo = new ArrayList<>();
-	private ShortDepartment department;
+	private String departmentId;
 	private String budget;
 	private String logoId;
 	private List<Goal> goals = new ArrayList<>();

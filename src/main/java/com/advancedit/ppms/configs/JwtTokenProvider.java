@@ -53,8 +53,8 @@ public class JwtTokenProvider {
             .compact();
     }*/
 
-    public String createToken(String username, Set<Role> roles, long tenantId) {
-        Claims claims = Jwts.claims().setSubject(username);
+    public String createToken(String email, Set<Role> roles, long tenantId) {
+        Claims claims = Jwts.claims().setSubject(email);
         if (tenantId > 0) claims = claims.setIssuer(Long.toString(tenantId));
         claims.put("roles", roles);
         Date now = new Date();
@@ -73,7 +73,7 @@ public class JwtTokenProvider {
         Claims body = Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token).getBody();
         List<String> roles = (List<String>)body.getOrDefault("roles", Collections.emptyList());
         LoggedUserInfo userInfo = new LoggedUserInfo();
-        userInfo.setUsername(body.getSubject());
+        userInfo.setEmail(body.getSubject());
         Optional.ofNullable(body.getIssuer())
         .ifPresent(s -> userInfo.setTenantId(Long.parseLong(s)));
         userInfo.setRoles(roles.stream().map(Role::valueOf).collect(Collectors.toSet()));

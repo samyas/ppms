@@ -1,6 +1,6 @@
 
 package com.advancedit.ppms;
-/*
+
 import com.advancedit.ppms.controllers.beans.Assignment;
 import org.bson.types.ObjectId;
 import org.junit.After;
@@ -32,8 +32,8 @@ import com.advancedit.ppms.service.ProjectService;
 @SpringBootTest
 public class ProjectServiceTest {
 
-//	@Autowired
-//	private ProjectService projectService;
+	@Autowired
+	private ProjectService projectService;
 	
 	 private List<String> ids;
 
@@ -47,7 +47,7 @@ public class ProjectServiceTest {
 	@After
 	public void finalize() {
 		if (ids.isEmpty()){
-			ids.forEach(id -> projectService.deleteProject(id));
+		//	ids.forEach(id -> projectService.deleteProject(id));
 		}
 	    ids.clear();
 	}
@@ -56,13 +56,16 @@ public class ProjectServiceTest {
 
 	@Test
 	public void getPagedSummury() {
-		addProjects();
+	//	addProjects();
 		
 		
-		Page<ProjectSummary> projects = projectService.getPagedProjectSummary(0, 100, null, null);
+		Page<Project> projects = projectService.getPagedListProject(2, 0, 10,
+                "5e52a1d3a59ac9402d76a50c",
+                //"7878787",
+                null, null);
 		assertNotNull(projects);
 		assertNotNull(projects.getContent());
-		assertEquals(projects.getContent().size(), 1);
+		assertEquals(projects.getContent().size(), 0);
 	
 	//	assertEquals(p.getName(), projects.getContent().get(0).getName());
 	//	assertEquals(p.getStatus(), projects.getContent().get(0).getStatus());
@@ -72,14 +75,14 @@ public class ProjectServiceTest {
 		
 	}
 	
-	
+	/*
 	
 	@Test
 	public void saveProjects() {
 		
 		Project p = new Project();
 		p.setName("Project 1");
-		p.setStatus(ProjectStatus.NEW);
+		p.setStatus(ProjectStatus.NEW.name());
 		
 		Goal goal = new Goal();
 		goal.setGoalId(new ObjectId().toHexString());
@@ -89,7 +92,7 @@ public class ProjectServiceTest {
 		
 		p.getGoals().add(goal);
 		
-		Project saved = projectService.addProject(p);
+		Project saved = projectService.addProject(23, p);
 		
 		ids.add(p.getProjectId());
 		assertNotNull(saved.getProjectId());
@@ -102,7 +105,7 @@ public class ProjectServiceTest {
 		assertNotNull(saved.getGoals().get(0).getGoalId());
 		
 		
-		Page<Project> projects = projectService.getPagedListProject(0, 100, null, null);
+		Page<Project> projects = projectService.getPagedListProject(23, 100, null, null);
 		assertNotNull(projects);
 		assertNotNull(projects.getContent());
 		assertEquals(projects.getContent().size(), 1);
@@ -273,7 +276,7 @@ public class ProjectServiceTest {
 		
 
 		
-	}
+	}*/
 
 	
 	public void addProjects() {
@@ -306,4 +309,4 @@ public class ProjectServiceTest {
 	}
 
 }
-	*/
+
