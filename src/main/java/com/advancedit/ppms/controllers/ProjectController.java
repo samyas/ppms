@@ -35,7 +35,6 @@ import com.advancedit.ppms.models.project.Task;
 import com.advancedit.ppms.service.ProjectService;
 
 import static com.advancedit.ppms.controllers.presenter.ProjectPresenter.toResource;
-import static com.advancedit.ppms.controllers.presenter.ProjectPresenter.toShortResource;
 import static com.advancedit.ppms.utils.SecurityUtils.*;
 
 @RestController
@@ -64,7 +63,7 @@ public class ProjectController {
         Organisation organisation = organisationService.getOrganisationByTenantId(loggedUserInfo.getTenantId())
                .orElseThrow(() -> new PPMSException(ErrorCode.ORGANISATION_ID_NOT_FOUND, "Organisation was not found"));
         Page<Project> pagedListProject = projectService.getPagedListProject(getCurrentTenantId(), page, size, person.getDepartmentId(), status, name);
-        List<ProjectResource> collect = pagedListProject.stream().map(p -> toResource(p, organisation)).collect(Collectors.toList());
+        List<ProjectResource> collect = pagedListProject.stream().map(p -> toResource(p, organisation, null, false)).collect(Collectors.toList());
         return new PageImpl<>(collect, pagedListProject.getPageable(), pagedListProject.getTotalElements());
     }
     
@@ -111,23 +110,15 @@ public class ProjectController {
         Person person = personService.getPersonByEmail(loggedUserInfo.getTenantId(), loggedUserInfo.getEmail());
         Organisation organisation = organisationService.getOrganisationByTenantId(loggedUserInfo.getTenantId())
                 .orElseThrow(() -> new PPMSException(ErrorCode.ORGANISATION_ID_NOT_FOUND, "Organisation was not found"));
-        boolean isAdmin = isHasAnyRole(Role.ADMIN_CREATOR, Role.SUPER_ADMIN);
+
         Project project = projectService.getProjectsById(getCurrentTenantId(), id);
-        if(isAdmin) return toResource(project, organisation);
-        if (!project.getDepartmentId().equals(person.getDepartmentId()))
+        if (person.getDepartmentId()!= null && !project.getDepartmentId().equals(person.getDepartmentId()))
             throw new PPMSException(ErrorCode.PROJECT_ID_NOT_FOUND, "Project not found");
-        return isBelongToProjectTeam(person.getId(), project) ? toResource(project, organisation)
-                : toShortResource(project, organisation);
+        boolean isAdmin = isHasAnyRole(Role.ADMIN_CREATOR, Role.SUPER_ADMIN, Role.MODULE_LEADER);
+        return toResource(project, organisation, person.getId(), isAdmin);
     }
 
-    private boolean isBelongToProjectTeam(String personId, Project project){
-        List<String> projectPersonIds = new ArrayList<>();
-        Optional.ofNullable(project.getCreator()).map(ShortPerson::getPersonId).ifPresent(projectPersonIds::add);
-        Optional.ofNullable(project.getSupervisor()).map(ShortPerson::getPersonId).ifPresent(projectPersonIds::add);
-        Optional.ofNullable(project.getExaminator()).map(ShortPerson::getPersonId).ifPresent(projectPersonIds::add);
-        project.getTeam().stream().map(ShortPerson::getPersonId).forEach(projectPersonIds::add);
-        return projectPersonIds.contains(personId);
-    }
+
     
     
     @RequestMapping(method=RequestMethod.DELETE, value="/api/projects/{id}")

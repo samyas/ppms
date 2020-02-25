@@ -41,4 +41,5 @@ public class ProjectResource {
     private List<String> technologies = new ArrayList<>();;
     private List<String> organisationsId = new ArrayList<>();
     private long tenantId;
+    private boolean extended;
 }

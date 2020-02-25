@@ -1,7 +1,10 @@
 package com.advancedit.ppms.exceptionhandling;
 
+import com.advancedit.ppms.configs.JwtAuthenticationEntryPoint;
 import com.advancedit.ppms.controllers.beans.ApiError;
 import com.advancedit.ppms.exceptions.PPMSException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
@@ -17,6 +20,8 @@ import javax.servlet.http.HttpServletRequest;
 
 @ControllerAdvice
 public class ExceptionHandlerControllerAdvice extends ResponseEntityExceptionHandler {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(ExceptionHandlerControllerAdvice.class);
 
    /* @ExceptionHandler(PPMSException.class)
     @ResponseStatus(value = HttpStatus.FORBIDDEN)
@@ -36,6 +41,7 @@ public class ExceptionHandlerControllerAdvice extends ResponseEntityExceptionHan
     protected ResponseEntity<Object> handlePPMSException(
             PPMSException ex,   final HttpServletRequest request) {
       //  return buildResponseEntity(getStatus(ex), ex.getMessage());
+        LOGGER.error("Error occurred " + ex.getCode(), ex);
         return new ResponseEntity<>(new ErrorResponse(ex, request.getRequestURI()), getStatus(ex));
     }
 
@@ -43,6 +49,7 @@ public class ExceptionHandlerControllerAdvice extends ResponseEntityExceptionHan
     @ExceptionHandler(Exception.class)
     protected ResponseEntity<Object> handleGlobalException(
             Exception ex,  final HttpServletRequest request) {
+        LOGGER.error("Error occurred:", ex);
         return new ResponseEntity<>(new ErrorResponse(ex, request.getRequestURI()), HttpStatus.INTERNAL_SERVER_ERROR);
     //    return buildResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
     }

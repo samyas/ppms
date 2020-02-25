@@ -60,7 +60,7 @@ public class PersonController {
 
     @RequestMapping(method=RequestMethod.POST, value="/api/persons")
     public String save(@RequestBody Person person) {
-        hasAnyRole(Role.SUPER_ADMIN, Role.ADMIN_CREATOR);
+        hasAnyRole(Role.SUPER_ADMIN, Role.ADMIN_CREATOR, Role.MODULE_LEADER);
     	return personService.addPerson(getCurrentTenantId(), person).getId();
     }
     
