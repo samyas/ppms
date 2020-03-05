@@ -10,5 +10,6 @@ public interface VerificationTokenRepository extends MongoRepository<Verificatio
 
 	VerificationToken findByToken(UUID token);
 
-	VerificationToken findByUserId(String userId);
+	VerificationToken findByEmailAndToken(String email, UUID token);
+
 }

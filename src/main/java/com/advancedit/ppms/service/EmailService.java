@@ -1,101 +1,90 @@
 package com.advancedit.ppms.service;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.commons.lang3.tuple.Pair;
+import com.advancedit.ppms.external.email.EmailBean;
+import com.advancedit.ppms.external.email.EmailClient;
+import com.advancedit.ppms.models.organisation.Department;
+import com.advancedit.ppms.models.organisation.Organisation;
+import com.advancedit.ppms.models.person.Person;
+import com.advancedit.ppms.models.user.User;
+import com.advancedit.ppms.models.user.VerificationToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.ui.freemarker.FreeMarkerTemplateUtils;
+import org.thymeleaf.TemplateEngine;
+import org.thymeleaf.context.Context;
 
-import com.advancedit.ppms.external.email.EmailSenderService;
+import java.util.HashMap;
+import java.util.Map;
 
-import freemarker.template.Configuration;
-import freemarker.template.Template;
-import freemarker.template.TemplateException;
+import static com.advancedit.ppms.utils.GeneralUtils.encode;
+import static java.util.Arrays.asList;
 
 
 @Service
 public class EmailService {
 	   /** The logger. */
     private static final Logger LOGGER = LoggerFactory.getLogger(EmailService.class);
-    
 
-    
-	
-	
 	@Autowired
-	private EmailSenderService emailSenderService;
-	
+	private EmailClient emailClient;
 	
     @Value("${mail.from}")
     private String from;
 	
-	
     @Autowired
-    private Configuration freemarkerConfig;
-
-  
+    private TemplateEngine templateEngine;
     
-    public String generateEmailContentTemplate(String personId, String senderUserId) throws IOException, TemplateException{
-    	
-    	/*Person person = personRepository.findOne(personId);
-    	if (person == null){
-       		throw new UPCException(ErrorCode.PERSON_ID_NOT_FOUND, String.format("Person id not found '%s'.", personId));  		  
-    	}
-    	
-    	User user = userRepository.findOne(senderUserId);
-    	if (user == null){
-       		throw new UPCException(ErrorCode.USER_ID_NOT_FOUND, String.format("User id not found '%s'.", senderUserId));  		  
-    	}
-    	
-    	
-    	Person sender = personRepository.findByEmail(user.getEmail());
-    	if (sender == null){
-       		throw new UPCException(ErrorCode.PERSON_EMAIL_NOT_FOUND, String.format("Email Person id not found '%s'.", user.getEmail()));  		  
-    	}*/
-    	
-	  	 Map<String, Object> model = new HashMap<>();
-	  	 model.put("person", null);
-	  	 model.put("sender", null);
-	  	 
-	  
+    public void sendJoinRequestForPerson(Person receiver, Organisation organisation,
+										 VerificationToken verificationToken, String domain){
 
-	  	
-	      // set loading location to src/main/resources
-	      // You may want to use a subfolder such as /templates here
-	      freemarkerConfig.setClassForTemplateLoading(this.getClass(), "/email-templates");
-	      
-	      Template t = freemarkerConfig.getTemplate("commercial-consultant.ftl");
-	      String text = FreeMarkerTemplateUtils.processTemplateIntoString(t, model);
-    	
+    	EmailBean emailBean = new EmailBean();
+    	emailBean.setHtml(true);
+    	Map<String, Object> data = new HashMap<>();
+		data.put("receiverFirstName", receiver.getFirstName());
+		data.put("receiverLastName", receiver.getLastName());
+		data.put("moduleName", organisation.getDepartments().stream()
+				 .filter( d -> d.getId().equals(receiver.getDepartmentId()))
+				.findFirst().map(Department::getName).orElse(null));
+		data.put("organisationName", organisation.getName());
+		data.put("domain", domain);
+		data.put("token",  encode(verificationToken.getEmail() + ":" + verificationToken.getToken()));
 
-      
-    	return text; 	
+		emailBean.setMessage(generateHtmlContent("mail-template", data));
+
+		emailBean.setFrom("abdessalemsamet@gmail.com");
+    	emailBean.setTo(asList("imed.romdhani@gmail.com"));
+    	emailBean.setSubject("Join 3C");
+    	emailClient.send(emailBean);
     }
-    
-	
-	
-	public Pair<List<String>, List<String>> sendBulkEmail( int maxEmails ){
-		
-		
-    return null;
-	//	return emailSenderService.send(null);
-			 //LOGGER.error("Error occur while sending email to (" + bean.getTo() + ")" , e); 
-		 //}
-		/* if (emailsBean != null && sendEmailNumber < emailsBean.size()){
-	      		throw new UPCException(ErrorCode.EMAILS_NOT_SENT_SUCCESSFULLY, "Some email are not send sucessfully.");  		  
 
-		 }*/
+	public void sendEmailConfirmation(User receiver, VerificationToken verificationToken,
+									  String domain){
+
+		EmailBean emailBean = new EmailBean();
+		emailBean.setHtml(true);
+		Map<String, Object> data = new HashMap<>();
+		data.put("receiverFirstName", receiver.getFirstName());
+		data.put("receiverLastName", receiver.getLastName());
+		data.put("token", encode(verificationToken.getEmail() + ":" + verificationToken.getToken()));
+		data.put("domain", domain);
+		emailBean.setMessage(generateHtmlContent("confirm-mail-template", data));
+
+		emailBean.setFrom("abdessalemsamet@gmail.com");
+		emailBean.setTo(asList("imed.romdhani@gmail.com"));
+		emailBean.setSubject("Welcome to 3C");
+		emailClient.send(emailBean);
+	}
+
+    private String generateHtmlContent(String template, Map<String, Object> data){
+		Context context = new Context();
+		data.forEach(context::setVariable);
+		return templateEngine.process(template, context);
 	}
 	
-	
-  /*  private List<EmailBean>  mapToEmailBean(Email email, GridFSDBFile file, int maxEmails){
+	/*
+   private List<EmailBean>  mapToEmailBean(Email email, GridFSDBFile file, int maxEmails){
     	
     	List<EmailBean> emailsBean = new ArrayList<>();
     	byte[] binary = null;

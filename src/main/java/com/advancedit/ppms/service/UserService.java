@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
 
+import com.advancedit.ppms.controllers.beans.ValidationTokenResponseBean;
 import com.advancedit.ppms.models.organisation.Organisation;
 import com.advancedit.ppms.models.person.Person;
 import com.advancedit.ppms.models.user.VerificationToken;
@@ -25,6 +26,7 @@ import com.advancedit.ppms.models.user.User;
 import com.advancedit.ppms.repositories.UserRepository;
 
 import static com.advancedit.ppms.models.person.PersonFunction.*;
+import static com.advancedit.ppms.utils.GeneralUtils.decode;
 
 
 @Service
@@ -76,11 +78,17 @@ public class UserService {
 
 		 Optional.ofNullable(userRepository.findByUsername(user.getUsername()))
 				 .ifPresent((s) -> {throw new PPMSException(ErrorCode.USER_USERNAME_ALREADY_EXIST, "Username:" + user.getUsername() + " already exists");});
-
-		User savedUser = saveUser(user);
-		VerificationToken verificationToken = generateValidationEmailToken(savedUser);
-		sendEmailActivation(savedUser, verificationToken);
-		return savedUser;
+		user.setPassword(bCryptPasswordEncoder.encode(user.getPassword()));
+		if (Boolean.TRUE.equals(user.getOrganisationCreationRequest())){
+			user.setEnabled(false);
+			user.setEmailIsValid(false);
+		}else{
+			user.setEnabled(true);
+			user.setEmailIsValid(true);
+		}
+		user.setRoles(Collections.emptySet());
+		user.setPermissions(Collections.emptySet());
+		return userRepository.save(user);
 	}
 
 	public void activateAdminCreatorAccount(String userId) {
@@ -112,48 +120,12 @@ public class UserService {
 
 	}
 
-	private VerificationToken generateValidationEmailToken(User user){
-		LocalDateTime localDateTime = LocalDateTime.now();
-		VerificationToken verificationToken = new VerificationToken();
-		verificationToken.setToken(UUID.randomUUID());
-		verificationToken.setStartDate(Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant()));
-		verificationToken.setUserId(user.getId());
-		verificationToken.setExpirationDate(Date.from(localDateTime.plusDays(expirationDuration).atZone(ZoneId.systemDefault()).toInstant()));
-		return verificationTokenRepository.save(verificationToken);
-	}
-
-
-	public void validateToken(String token) {
-		VerificationToken verificationToken = verificationTokenRepository.findByToken(UUID.fromString(token));
-		if (verificationToken == null){
-			throw new PPMSException("Token is invalid");
-		}
-		Date currentDate = Date.from(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant());
-		if (verificationToken.getExpirationDate().before(currentDate)){
-			throw new PPMSException("Token is expired");
-		}
-		User user = userRepository.findById(verificationToken.getUserId())
-				.orElseThrow(() -> new PPMSException("User not found"));
-		user.setEmailIsValid(true);
-		if (Boolean.TRUE.equals(user.getOrganisationCreationRequest())){
-
-		}
-		userRepository.save(user);
-	}
-
-	private void sendEmailActivation(User user, VerificationToken verificationToken){
-		//TODO to implement
-	}
-
-
-	private User saveUser(User user) {
-		user.setPassword(bCryptPasswordEncoder.encode(user.getPassword()));
-		user.setEnabled(false);
-		user.setEmailIsValid(false);
-		user.setRoles(Collections.emptySet());
-		user.setPermissions(Collections.emptySet());
+	public User updateUser(User user){
 		return userRepository.save(user);
 	}
+
+
+
 
 	public User activateAccount(long tenantId, LoggedUserInfo userInfo) {
 		User user = userRepository.findByEmail(userInfo.getEmail());
@@ -193,13 +165,7 @@ public class UserService {
 	}
 
 
-	public String getEmailToken(String userId) {
-		VerificationToken verificationToken = verificationTokenRepository.findByUserId(userId);
-		if (verificationToken == null){
-			throw new PPMSException("User Id is not found");
-		}
-		return verificationToken.getToken().toString();
-	}
+
 
 	public Page<User> getPagedUsers(long tenantId, int page, int size, Boolean isCreator, Boolean enabled, String name) {
 		Pageable pageableRequest =  PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "email"));;

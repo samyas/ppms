@@ -4,9 +4,10 @@ import java.util.List;
 import java.util.Optional;
 
 import com.advancedit.ppms.models.organisation.Department;
+import com.advancedit.ppms.models.organisation.Organisation;
 import com.advancedit.ppms.models.person.ShortPerson;
-import com.advancedit.ppms.models.user.ActivationToken;
 import com.advancedit.ppms.models.user.User;
+import com.advancedit.ppms.models.user.VerificationToken;
 import com.advancedit.ppms.repositories.OrganisationRepository;
 import com.advancedit.ppms.repositories.UserRepository;
 import org.apache.commons.lang3.StringUtils;
@@ -41,7 +42,7 @@ public class PersonService {
 	private OrganisationRepository organisationRepository;
 
 	@Autowired
-	private ActivationTokenService activationTokenService;
+	private VerificationTokenService verificationTokenService;
 
 	@Autowired
 	private EmailService emailService;
@@ -82,15 +83,15 @@ public class PersonService {
 		return personRepository.save(person);
 	}
     
-    public Person addPerson(long tenantId, Person person){
+    public Person addPerson(long tenantId, Person person, String domain){
        	if (personRepository.findByTenantIdAndEmail(tenantId, person.getEmail()) != null){
        		throw new PPMSException(ErrorCode.PERSON_EMAIL_ALREADY_EXIST, String.format("Email already exist '%s'.", person.getEmail()));
    	    }
-       String organisationId =	organisationRepository.findByTenantId(tenantId).getId();
+       Organisation organisation =	organisationRepository.findByTenantId(tenantId);
       String departmentId = 	Optional.ofNullable(person.getDepartmentId())
 			   .orElseThrow(() -> new PPMSException("Department is mandatory"));
 
-		Department department = organisationRepository.getDepartment(tenantId, organisationId, departmentId)
+		Department department = organisationRepository.getDepartment(tenantId, organisation.getId(), departmentId)
 				.orElseThrow(() -> new PPMSException("Department was not found"));
 
 		person.setId(null);
@@ -99,15 +100,15 @@ public class PersonService {
     	Person p =  personRepository.save(person);
 		if (PersonFunction.MODEL_LEADER.equals(person.getPersonfunction()) && department.getResponsible() == null){
 			department.setResponsible( new ShortPerson(p.getId(), p.getFirstName(), p.getLastName(), p.getPhotoFileId()));
-			organisationRepository.updateDepartment(tenantId, organisationId, department);
+			organisationRepository.updateDepartment(tenantId, organisation.getId(), department);
 		}
-		sendJoinInvitation(tenantId, p);
+		sendJoinInvitation(tenantId, p, organisation, domain);
 		return p;
     }
 
-	public void sendJoinInvitation(long tenantId, Person person){
-		ActivationToken activationToken = activationTokenService.generateActivationToken(tenantId, person.getEmail());
-		//emailService.send
+	public void sendJoinInvitation(long tenantId, Person person, Organisation organisation, String domain){
+		VerificationToken verificationToken = verificationTokenService.generateValidationEmailToken(tenantId, person.getEmail());
+		emailService.sendJoinRequestForPerson(person, organisation, verificationToken, domain);
 	}
     
     public Person updatePerson(long tenantId, Person person){

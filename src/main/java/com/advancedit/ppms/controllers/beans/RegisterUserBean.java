@@ -15,4 +15,5 @@ public class RegisterUserBean {
     private String message;
     private String firstName;
     private String lastName;
+    private String emailToken;
 }

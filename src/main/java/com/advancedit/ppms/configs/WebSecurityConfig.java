@@ -41,6 +41,8 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 				.antMatchers("/api/auth/login").permitAll()
 				.antMatchers("/api/auth/register").permitAll()
 				.antMatchers("/api/auth/validate").permitAll()
+				.antMatchers("/api/auth/validate-creator").permitAll()
+				.antMatchers("/api/auth/validate-join-request").permitAll()
 				.antMatchers("/api/auth/getToken").permitAll()
 
 			//	.antMatchers("/api/projects/**").hasAnyAuthority(Role.ADMIN.name(), Role.STAFF.name(), Role.STUDENT.name()).anyRequest().authenticated()

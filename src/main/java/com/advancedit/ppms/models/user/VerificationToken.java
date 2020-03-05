@@ -16,9 +16,9 @@ import java.util.UUID;
 public class VerificationToken {
 	@Id
 	private String id;
-	private String userId;
+	private String email;
 	private UUID token;
-	private Date startDate;
-	private Date expirationDate;
+	private Date creationDate;
+	private long tenantId;
 	
 }

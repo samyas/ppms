@@ -1,40 +1,30 @@
 package com.advancedit.ppms.controllers;
 
 import com.advancedit.ppms.configs.JwtTokenProvider;
-import com.advancedit.ppms.controllers.beans.AuthResponseBean;
-import com.advancedit.ppms.controllers.beans.AuthUserBean;
-import com.advancedit.ppms.controllers.beans.OrganisationShortBean;
-import com.advancedit.ppms.controllers.beans.RegisterUserBean;
+import com.advancedit.ppms.controllers.beans.*;
 import com.advancedit.ppms.exceptions.ErrorCode;
 import com.advancedit.ppms.exceptions.PPMSException;
 import com.advancedit.ppms.models.organisation.Organisation;
 import com.advancedit.ppms.models.person.Person;
 import com.advancedit.ppms.models.person.PersonFunction;
-import com.advancedit.ppms.models.project.Project;
-import com.advancedit.ppms.models.user.ActivationToken;
 import com.advancedit.ppms.models.user.Role;
 import com.advancedit.ppms.models.user.User;
-import com.advancedit.ppms.repositories.UserRepository;
-import com.advancedit.ppms.service.ActivationTokenService;
-import com.advancedit.ppms.service.OrganisationService;
-import com.advancedit.ppms.service.UserService;
-import com.advancedit.ppms.services.CustomUserDetailsService;
+import com.advancedit.ppms.models.user.VerificationToken;
+import com.advancedit.ppms.service.*;
 import com.advancedit.ppms.utils.LoggedUserInfo;
-import com.advancedit.ppms.utils.SecurityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.Optional;
+import javax.servlet.http.HttpServletRequest;
+import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.advancedit.ppms.models.person.PersonFunction.*;
 import static com.advancedit.ppms.models.user.Role.ADMIN_CREATOR;
 import static com.advancedit.ppms.models.user.Role.SUPER_ADMIN;
 import static com.advancedit.ppms.utils.SecurityUtils.*;
@@ -54,10 +44,16 @@ public class AuthController {
 	private UserService userService;
 
 	@Autowired
+	private PersonService personService;
+
+	@Autowired
 	OrganisationService organisationService;
 
 	@Autowired
-	ActivationTokenService activationTokenService;
+   VerificationTokenService verificationTokenService;
+
+	@Autowired
+	EmailService emailService;
 
 	@RequestMapping(method= RequestMethod.POST, value="/login")
 	public AuthResponseBean login(@RequestBody AuthBody credentials) {
@@ -66,7 +62,14 @@ public class AuthController {
 			User user = userService.getUserByUsername(credentials.getUsername());
 			if (!user.isEmailIsValid()) throw new PPMSException("Your email is not validated, please check your mailbox");
 			//if (!user.isEnabled()) throw new PPMSException("Your account is not enabled yet by administrator");
-			String token = jwtTokenProvider.createToken(user.getEmail(), user.getRoles(), user.getDefaultTenantId());
+			Set<Role> roles = user.getRoles();
+			if (user.getDefaultTenantId() != 0) {
+				Optional<Role> role = Optional.of(personService.getPersonByEmail(user.getDefaultTenantId(),
+						user.getEmail()))
+						.map(this::getRoleFromPersonFunction);
+				role.map(roles::add);
+			}
+			String token = jwtTokenProvider.createToken(user.getEmail(), roles, user.getDefaultTenantId());
 			AuthResponseBean authResponseBean = new AuthResponseBean();
 			authResponseBean.setToken(token);
 			authResponseBean.setEnabled(user.isEnabled());
@@ -85,22 +88,83 @@ public class AuthController {
 	}
 
 	@RequestMapping(method= RequestMethod.POST, value="/register")
-	public ResponseEntity register(@RequestBody RegisterUserBean userBean) {
+	public ResponseEntity register(@RequestBody RegisterUserBean userBean , HttpServletRequest request) {
 		User user = new User();
+		if(!userBean.getIsCreator()){
+			VerificationToken verificationToken = Optional.ofNullable(userBean.getEmailToken()).map(et ->
+					verificationTokenService.validateToken(et))
+					.orElseThrow(() -> new PPMSException("Email Token cannot be empty"));
+			user.setEmail(verificationToken.getEmail());
+			user.getTenantIds().add(verificationToken.getTenantId());
+			user.setDefaultTenantId(verificationToken.getTenantId());
+		} else {
+			user.setEmail(userBean.getEmail());
+		}
+
 		user.setUsername(userBean.getUsername());
-		user.setEmail(userBean.getEmail());
 		user.setPassword(userBean.getPassword());
 		user.setOrganisationCreationRequest(userBean.getIsCreator());
 		user.setMessage(userBean.getMessage());
 		user.setFirstName(userBean.getFirstName());
 		user.setLastName(userBean.getLastName());
 		String userId = userService.register(user).getId();
+		if(userBean.getIsCreator()){
+			VerificationToken verificationToken = verificationTokenService.generateValidationEmailToken(0, user.getEmail());
+			// Send email to the user
+			emailService.sendEmailConfirmation(user, verificationToken, request.getHeader("Origin"));
+		}
 		return ResponseEntity.ok(userId);
 	}
 
-	@RequestMapping(method= RequestMethod.GET, value="/validate")
-	public ResponseEntity validateToken(@RequestParam("token") String token) {
-		userService.validateToken(token);
+	private Role getRoleFromPersonFunction(Person person){
+		if (STAFF.equals(person.getPersonfunction())){
+			return  Role.STAFF;
+		}
+		if (STUDENT.equals(person.getPersonfunction())){
+			return  Role.STUDENT;
+		}
+		if(MODEL_LEADER.equals(person.getPersonfunction())){
+			return  Role.MODULE_LEADER;
+		}
+		if(PersonFunction.ADMIN_CREATOR.equals(person.getPersonfunction())){
+			return  Role.ADMIN_CREATOR;
+		}
+		return null;
+	}
+	@RequestMapping(method= RequestMethod.GET, value="/validate-join-request")
+	public ValidationTokenResponseBean validateJoinRequestToken(@RequestParam("token") String emailToken) {
+		ValidationTokenResponseBean validationTokenResponseBean = new ValidationTokenResponseBean();
+		VerificationToken verificationToken = verificationTokenService.validateToken(emailToken);
+		validationTokenResponseBean.setToken(emailToken);
+		User user = userService.getUserByEmail(verificationToken.getEmail());
+		if (user != null){
+			if (user.getTenantIds().contains(verificationToken.getTenantId())){
+				user.getTenantIds().add(verificationToken.getTenantId());
+				userService.updateUser(user);
+				validationTokenResponseBean.setResult(ValidationTokenResponseBean.ValidationTokenResult.LOGIN);
+			}
+		} else {
+			Person person = personService.getPersonByEmail(verificationToken.getTenantId(), verificationToken.getEmail());
+			validationTokenResponseBean.setFirstName(person.getFirstName());
+			validationTokenResponseBean.setLastName(person.getLastName());
+			validationTokenResponseBean.setToken(emailToken);
+			validationTokenResponseBean.setEmail(verificationToken.getEmail());
+			validationTokenResponseBean.setResult(ValidationTokenResponseBean.ValidationTokenResult.REGISTER);
+		}
+		return validationTokenResponseBean;
+	}
+
+	@RequestMapping(method= RequestMethod.GET, value="/validate-creator")
+	public ResponseEntity validateToken(@RequestParam("token") String emailToken) {
+		ValidationTokenResponseBean validationTokenResponseBean = new ValidationTokenResponseBean();
+		VerificationToken verificationToken = verificationTokenService.validateToken(emailToken);
+		validationTokenResponseBean.setToken(emailToken);
+		User user = Optional.ofNullable(userService.getUserByEmail(verificationToken.getEmail()))
+				.orElseThrow(() ->  new PPMSException("User not found with email " + verificationToken.getEmail()));
+		user.setEmailIsValid(true);
+		userService.updateUser(user);
+		//send email to super users
+		//emailService.sendJoinRequestForPerson();
 		return ResponseEntity.noContent().build();
 	}
 
@@ -151,30 +215,25 @@ public class AuthController {
 		return authResponseBean;
 	}
 
-	@RequestMapping(method= RequestMethod.GET, value="/activate-account")
+/*	@RequestMapping(method= RequestMethod.GET, value="/activate-account")
 	public AuthResponseBean activateAccount(@RequestParam("code") String code) {
 		LoggedUserInfo loggedUserInfo = getLoggedUserInfo();
-		ActivationToken activationToken = activationTokenService.getActivationToken(loggedUserInfo.getEmail(), code)
+		VerificationToken activationToken = verificationTokenService.validateToken(loggedUserInfo.getEmail(), code)
 				.orElseThrow(() -> new PPMSException(ErrorCode.ACTIVATION_TOKEN_EXPIRED, "Invalid code"));
 
 		User user = userService.activateAccount(activationToken.getTenantId(), getLoggedUserInfo());
 		String token = jwtTokenProvider.createToken(user.getEmail(), user.getRoles(), user.getDefaultTenantId());
 		AuthResponseBean authResponseBean = new AuthResponseBean();
 		authResponseBean.setToken(token);
-	//	authResponseBean.setNeedToSelect(true);
 		authResponseBean.setEnabled(user.isEnabled());
 		return authResponseBean;
-	}
+	}*/
 
 
-	@RequestMapping(method= RequestMethod.GET, value="/getToken")
-	public String getToken(@RequestParam("userId") String userId) {
-		return userService.getEmailToken(userId);
-	}
 
-	@RequestMapping(method= RequestMethod.GET, value="/getActivationToken")
+/*	@RequestMapping(method= RequestMethod.GET, value="/getActivationToken")
 	public String getActivationToken() {
 		return activationTokenService.getActivationToken(getLoggedUserInfo().getEmail());
-	}
+	}*/
 
 }

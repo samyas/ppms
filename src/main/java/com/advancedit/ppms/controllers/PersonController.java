@@ -1,5 +1,7 @@
 package com.advancedit.ppms.controllers;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -23,6 +25,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.advancedit.ppms.models.person.Person;
 import com.advancedit.ppms.models.person.PersonFunction;
 import com.advancedit.ppms.service.PersonService;
+
+import javax.servlet.http.HttpServletRequest;
 
 import static com.advancedit.ppms.controllers.presenter.PersonPresenter.toResource;
 import static com.advancedit.ppms.utils.SecurityUtils.*;
@@ -59,9 +63,10 @@ public class PersonController {
     }
 
     @RequestMapping(method=RequestMethod.POST, value="/api/persons")
-    public String save(@RequestBody Person person) {
+    public String save(@RequestBody Person person, HttpServletRequest request) throws MalformedURLException {
         hasAnyRole(Role.SUPER_ADMIN, Role.ADMIN_CREATOR, Role.MODULE_LEADER);
-    	return personService.addPerson(getCurrentTenantId(), person).getId();
+
+        return personService.addPerson(getCurrentTenantId(), person, request.getHeader("Origin")).getId();
     }
     
     @RequestMapping(method=RequestMethod.PUT, value="/api/persons/{id}")
