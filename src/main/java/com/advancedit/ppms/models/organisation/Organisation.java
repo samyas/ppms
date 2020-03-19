@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import com.advancedit.ppms.models.files.FileDescriptor;
 import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Transient;
@@ -33,6 +34,7 @@ public class Organisation {
 	private String contactEmail;
 	private String logoId;
 	private String responsibleEmail;
+	private FileDescriptor logo;
 
 
     

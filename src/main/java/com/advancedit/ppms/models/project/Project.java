@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import com.advancedit.ppms.models.files.FileDescriptor;
 import com.advancedit.ppms.models.organisation.ShortDepartment;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -45,5 +46,6 @@ public class Project {
 	private List<Goal> goals = new ArrayList<>();
 	private List<String> technologies = new ArrayList<>();;
 	private List<String> organisationsId = new ArrayList<>();
+	private List<FileDescriptor> attachments = new ArrayList<>();
 	private long tenantId;
 }

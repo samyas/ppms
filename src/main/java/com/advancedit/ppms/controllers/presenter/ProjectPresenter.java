@@ -37,6 +37,7 @@ public class ProjectPresenter {
         projectResource.setTechnologies(project.getTechnologies());
         projectResource.setOrganisationsId(project.getOrganisationsId());
         projectResource.setTenantId(project.getTenantId());
+        projectResource.setAttachments(project.getAttachments());
         projectResource.setExtended(isAdmin || (personId != null && isBelongToProjectTeam(personId, project)));
         if (projectResource.isExtended()) {
             projectResource.setGoals(project.getGoals());

@@ -7,6 +7,7 @@ import java.io.InputStream;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.gridfs.GridFsResource;
 import org.springframework.data.mongodb.gridfs.GridFsTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -20,6 +21,7 @@ public class FileStorageRepositoryImpl implements FileStorageRepository{
 
 
 	 @Autowired
+	 private
 	 GridFsTemplate gridFsTemplate;
 
 	 @Override
@@ -31,9 +33,10 @@ public class FileStorageRepositoryImpl implements FileStorageRepository{
 	 }
 
 	 @Override
-	 public GridFSFile getById(String id) {
-	  return this.gridFsTemplate.findOne(new Query(Criteria.where("_id").is(
-	    id)));
+	 public GridFsResource getById(String id) {
+		 GridFSFile gridFsFile = this.gridFsTemplate.findOne(new Query(Criteria.where("_id").is(
+				 id)));
+		return this.gridFsTemplate.getResource(gridFsFile);
 	 }
 
 	 @Override

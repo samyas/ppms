@@ -1,6 +1,7 @@
 package com.advancedit.ppms.repositories.impl;
 
 import com.advancedit.ppms.exceptions.PPMSException;
+import com.advancedit.ppms.models.files.FileDescriptor;
 import com.advancedit.ppms.models.organisation.Department;
 import com.advancedit.ppms.models.organisation.Organisation;
 import com.advancedit.ppms.models.organisation.Sector;
@@ -56,6 +57,17 @@ public class OrganisationRepositoryImpl implements OrganisationCustomRepository 
 		final UpdateResult wr = mongoTemplate.updateFirst(new BasicQuery(findDepartmentCriteria.getCriteriaObject()), update, Organisation.class);
 		if (wr.getModifiedCount() != 1){
 			throw new PPMSException("Unable to update Department");
+		}
+	}
+
+	@Override
+	public void addLogo(long tenantId,  String organisationId,  FileDescriptor fileDescriptor) {
+		final BasicQuery query = new BasicQuery(Criteria.where("id").is(organisationId).and("tenantId").is(tenantId)
+				.getCriteriaObject());
+		final Update update = new Update().set("logo", fileDescriptor);
+		final UpdateResult wr = mongoTemplate.updateFirst(query, update, Organisation.class);
+		if (wr.getModifiedCount() != 1){
+			throw new PPMSException("Unable to set logo");
 		}
 	}
 

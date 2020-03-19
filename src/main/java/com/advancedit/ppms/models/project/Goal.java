@@ -3,7 +3,7 @@ package com.advancedit.ppms.models.project;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.bson.types.ObjectId;
+import com.advancedit.ppms.models.files.FileDescriptor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -21,6 +21,7 @@ public class Goal {
 	private String startDate;
 	private String endDate;
 	private List<Task> tasks = new ArrayList<>();
+	private List<FileDescriptor> attachmentsArrayList = new ArrayList<>();
 	
 	
 	public String getGoalId() {
@@ -71,7 +72,6 @@ public class Goal {
 	public void setTasks(List<Task> tasks) {
 		this.tasks = tasks;
 	}
-	
-	
-
+	public List<FileDescriptor> getAttachmentsArrayList() { return attachmentsArrayList; }
+	public void setAttachmentsArrayList(List<FileDescriptor> attachmentsArrayList) { this.attachmentsArrayList = attachmentsArrayList; }
 }

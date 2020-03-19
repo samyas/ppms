@@ -3,6 +3,7 @@ package com.advancedit.ppms.repositories;
 import java.util.List;
 import java.util.Optional;
 
+import com.advancedit.ppms.models.files.FileDescriptor;
 import com.advancedit.ppms.models.person.ShortPerson;
 import com.advancedit.ppms.models.project.Project;
 import org.springframework.data.domain.Page;
@@ -40,6 +41,19 @@ public interface ProjectCustomRepository {
 
 
     boolean existByProjectIdAndTenantId(String projectId, long tenantId);
+
+
+    void addAttachment(long tenantId, String projectId, FileDescriptor fileDescriptor);
+
+    void addAttachment(long tenantId, String projectId, String goalId, FileDescriptor fileDescriptor);
+
+    void addAttachment(long tenantId, String projectId, String goalId, String taskId, FileDescriptor fileDescriptor);
+
+    void deleteAttachment(long tenantId, String projectId, String fileName);
+
+    void deleteAttachment(long tenantId, String projectId, String goalId, String fileName);
+
+    void deleteAttachment(long tenantId, String projectId, String goalId, String taskId, String fileName);
 
 
 }

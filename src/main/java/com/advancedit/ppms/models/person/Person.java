@@ -1,5 +1,6 @@
 package com.advancedit.ppms.models.person;
 
+import com.advancedit.ppms.models.files.FileDescriptor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
@@ -27,6 +28,7 @@ public class Person {
 	private PersonFunction personfunction;
 	private String status;
 	private long tenantId;
+	private FileDescriptor image;
 	
 	//@NotNull
 	private String job;

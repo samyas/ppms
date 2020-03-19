@@ -3,6 +3,7 @@ package com.advancedit.ppms.models.project;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.advancedit.ppms.models.files.FileDescriptor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -24,7 +25,8 @@ public class Task {
 	private ShortPerson createdBy;
 	private List<ShortPerson> assignedTo = new ArrayList<>();
 	private List<Message> messages = new ArrayList<>();
-	 
+	private List<FileDescriptor> attachmentList = new ArrayList<>();
+
 	public String getName() {
 		return name;
 	}
@@ -86,7 +88,9 @@ public class Task {
 	public void setMessages(List<Message> messages) {
 		this.messages = messages;
 	}
-	
-	
+	public List<FileDescriptor> getAttachmentList() { return attachmentList; }
+	public void setAttachmentList(List<FileDescriptor> attachmentList) { this.attachmentList = attachmentList; }
+
+
 
 }

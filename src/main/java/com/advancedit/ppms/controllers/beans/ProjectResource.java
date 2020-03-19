@@ -1,5 +1,6 @@
 package com.advancedit.ppms.controllers.beans;
 
+import com.advancedit.ppms.models.files.FileDescriptor;
 import com.advancedit.ppms.models.organisation.ShortDepartment;
 import com.advancedit.ppms.models.person.ShortPerson;
 import com.advancedit.ppms.models.project.Goal;
@@ -34,6 +35,7 @@ public class ProjectResource {
     private ShortPerson examinator;
     private ShortPerson creator;
     private List<ShortPerson> assignedTo = new ArrayList<>();
+    private List<FileDescriptor> attachments;
     private ShortDepartment department;
     private String budget;
     private String logoId;

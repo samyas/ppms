@@ -1,12 +1,11 @@
 package com.advancedit.ppms.repositories;
 
 import java.io.InputStream;
-import java.util.List;
 
 import com.mongodb.DBObject;
 import com.mongodb.client.gridfs.GridFSFindIterable;
 import com.mongodb.client.gridfs.model.GridFSFile;
-import com.mongodb.gridfs.GridFSDBFile;
+import org.springframework.data.mongodb.gridfs.GridFsResource;
 
 public interface FileStorageRepository {
 
@@ -14,7 +13,7 @@ public interface FileStorageRepository {
 			 
 	public GridFSFile retrive(String fileName);
 
-	public GridFSFile getById(String id);
+	public GridFsResource getById(String id);
 
 	public GridFSFile getByFilename(String filename);
 

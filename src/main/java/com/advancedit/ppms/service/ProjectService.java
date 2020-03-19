@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
 
+import com.advancedit.ppms.models.files.FileDescriptor;
 import com.advancedit.ppms.models.project.*;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -180,6 +181,22 @@ public class ProjectService {
 		projectRepository.updateTaskStatus(tenantId, projectId, goalId, taskId, status);
 	}
 
+	public void addAttachment(long tenantId, String projectId, FileDescriptor fileDescriptor) {
+		projectRepository.addAttachment(tenantId, projectId, fileDescriptor);
+	}
+
+	public void deleteAttachment(long tenantId, String projectId, String url) {
+		projectRepository.deleteAttachment(tenantId, projectId, url);
+	}
+
+	public void addAttachment(long tenantId, String projectId, String goalId, String taskId, FileDescriptor fileDescriptor) {
+		projectRepository.addAttachment(tenantId, projectId, goalId, taskId, fileDescriptor);
+	}
+
+	public void deleteAttachment(long tenantId, String projectId, String goalId, String taskId, String url) {
+		projectRepository.deleteAttachment(tenantId, projectId, goalId, taskId, url);
+	}
+
 	public void assignTask(long tenantId, String projectId, String goalId, String taskId, Assignment assignment) {
 		Task task = projectRepository.getTask(tenantId, projectId, goalId, taskId)
 				.orElseThrow(() -> new PPMSException(ErrorCode.TASK_ID_NOT_FOUND,
@@ -192,14 +209,14 @@ public class ProjectService {
 				Optional<ShortPerson> assignedPerson = team.stream()
 						.filter(sp -> sp.getPersonId().equals(assignment.getPersonId())).findFirst();
 				if (assignment.getAction().equals(Action.ADD)) {
-					if (!assignedPerson.isPresent())
-						team.add(getShortPerson(assignment.getPersonId()));
+					//if (!assignedPerson.isPresent())
+					//	team.add(getShortPerson(assignment.getPersonId()));
 				} else {
 					if (assignedPerson.isPresent())
 						team.removeIf(sp -> sp.getPersonId().equals(assignment.getPersonId()));
 				}
-			//	ShortPerson shortPerson = new ShortPerson("1", "first", "last", "789456123");
-				//team.add(shortPerson);
+			    ShortPerson shortPerson = new ShortPerson("1", "first", "last", "789456123");
+				team.add(shortPerson);
 				projectRepository.assignTask(tenantId, projectId, goalId, taskId, team);
 				break;
 			default:
@@ -244,4 +261,6 @@ public class ProjectService {
 		projectRepository.save(p);
 		
 	}
+
+
 }

@@ -54,7 +54,7 @@ public class EmailService {
 		emailBean.setMessage(generateHtmlContent("mail-template", data));
 
 		emailBean.setFrom("abdessalemsamet@gmail.com");
-    	emailBean.setTo(asList("imed.romdhani@gmail.com"));
+    	emailBean.setTo(asList("slouma.ensi@gmail.com"));
     	emailBean.setSubject("Join 3C");
     	emailClient.send(emailBean);
     }
@@ -72,7 +72,7 @@ public class EmailService {
 		emailBean.setMessage(generateHtmlContent("confirm-mail-template", data));
 
 		emailBean.setFrom("abdessalemsamet@gmail.com");
-		emailBean.setTo(asList("imed.romdhani@gmail.com"));
+		emailBean.setTo(asList( "slouma.ensi@gmail.com"));
 		emailBean.setSubject("Welcome to 3C");
 		emailClient.send(emailBean);
 	}

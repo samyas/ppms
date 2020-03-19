@@ -1,5 +1,6 @@
 package com.advancedit.ppms.repositories;
 
+import com.advancedit.ppms.models.files.FileDescriptor;
 import com.advancedit.ppms.models.organisation.Department;
 import com.advancedit.ppms.models.organisation.Sector;
 
@@ -18,4 +19,6 @@ public interface OrganisationCustomRepository {
     Sector addSector(long tenantId, String organisationId, String departmentId, Sector sector);
 
     Optional<Sector> getSector(long tenantId, String organisationId, String departmentId, String sectorId);
+
+    void addLogo(long tenantId,  String organisationId,  FileDescriptor fileDescriptor);
 }
