@@ -1,5 +1,6 @@
   package com.advancedit.ppms.configs;
 
+import com.advancedit.ppms.utils.GeneralUtils;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
@@ -13,7 +14,9 @@ import org.springframework.context.annotation.PropertySource;
 
 import java.util.Properties;
 
-@Configuration
+import static com.advancedit.ppms.utils.GeneralUtils.decode;
+
+  @Configuration
 @PropertySource("classpath:application.properties")
 public class ExternalServiceConfig {
 
@@ -32,7 +35,7 @@ public class ExternalServiceConfig {
                                  ) {
 
 
-       AWSCredentials credentials = new BasicAWSCredentials(accessKey,accessSecret);
+       AWSCredentials credentials = new BasicAWSCredentials(decode(accessKey),decode(accessSecret));
        AWSCredentialsProvider credentialsProvider1 =   new AWSStaticCredentialsProvider(credentials);
       /* BasicSessionCredentials sessionCredentials = new BasicSessionCredentials(
                session_creds.getAccessKeyId(),
