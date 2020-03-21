@@ -1,4 +1,4 @@
-
+/*
 package com.advancedit.ppms;
 
 import com.advancedit.ppms.controllers.beans.Assignment;
@@ -33,44 +33,44 @@ import org.thymeleaf.messageresolver.IMessageResolver;
 @SpringBootTest
 public class ProjectServiceTest {
 
-	@Autowired
-	private ProjectService projectService;
+@Autowired
+private ProjectService projectService;
 
-	@Autowired
-	private DocumentManagementService documentManagementService;
-	
-	 private List<String> ids;
+@Autowired
+private DocumentManagementService documentManagementService;
 
-	 private long tenantId = 10;
-	@Before
-	public void init() {
-		ids = new ArrayList<>();
-	//	projectService.deleteAll();
-	}
+ private List<String> ids;
 
-	private Path createFile() throws IOException {
-		Charset utf8 = StandardCharsets.UTF_8;
-		List<String> list = Arrays.asList("Line 1", "Line 2");
+ private long tenantId = 10;
+@Before
+public void init() {
+    ids = new ArrayList<>();
+//	projectService.deleteAll();
+}
+
+private Path createFile() throws IOException {
+    Charset utf8 = StandardCharsets.UTF_8;
+    List<String> list = Arrays.asList("Line 1", "Line 2");
 
 
-			// If the file doesn't exists, create and write to it
-			// If the file exists, truncate (remove all content) and write to it
-			return Files.write(Paths.get("app.txt"), list, utf8);
+        // If the file doesn't exists, create and write to it
+        // If the file exists, truncate (remove all content) and write to it
+        return Files.write(Paths.get("app.txt"), list, utf8);
 
-	}
+}
 
-	/*private void readFile(){
-		// Read
-		try {
-			byte[] content = Files.readAllBytes(Paths.get("app.log"));
-			System.out.println(new String(content));
+private void readFile(){
+    // Read
+    try {
+        byte[] content = Files.readAllBytes(Paths.get("app.log"));
+        System.out.println(new String(content));
 
-			// for binary
-			//System.out.println(Arrays.toString(content));
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}*/
+        // for binary
+        //System.out.println(Arrays.toString(content));
+    } catch (IOException e) {
+        e.printStackTrace();
+    }
+}
 
 	@Test
 	public void uploadToAmazon() throws IOException {
@@ -230,7 +230,7 @@ public class ProjectServiceTest {
 		assertEquals(savedGoal2.getName(), goal2.getName());
 		}
 		
-	}*/
+	}
 
 
 
@@ -424,6 +424,6 @@ public class ProjectServiceTest {
 		
 
 		
-	}
 
-}
+
+}}*/
