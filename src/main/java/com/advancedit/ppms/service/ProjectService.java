@@ -1,6 +1,7 @@
 package com.advancedit.ppms.service;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -197,6 +198,20 @@ public class ProjectService {
 		projectRepository.deleteAttachment(tenantId, projectId, goalId, taskId, url);
 	}
 
+
+	public String addMessage(long tenantId, String projectId, String goalId,
+							 String taskId, Message message) {
+		message.setMessageId(new ObjectId().toHexString());
+		message.setStart(new Date());
+		return projectRepository.addMessage(tenantId, projectId, goalId, taskId, message);
+	}
+
+	public String updateMessage(long tenantId, String projectId, String goalId,
+								String taskId, String messageId, Message message) {
+
+		return projectRepository.updateMessage(tenantId, projectId, goalId, taskId, messageId, message);
+	}
+
 	public void assignTask(long tenantId, String projectId, String goalId, String taskId, Assignment assignment) {
 		Task task = projectRepository.getTask(tenantId, projectId, goalId, taskId)
 				.orElseThrow(() -> new PPMSException(ErrorCode.TASK_ID_NOT_FOUND,
@@ -209,14 +224,14 @@ public class ProjectService {
 				Optional<ShortPerson> assignedPerson = team.stream()
 						.filter(sp -> sp.getPersonId().equals(assignment.getPersonId())).findFirst();
 				if (assignment.getAction().equals(Action.ADD)) {
-					//if (!assignedPerson.isPresent())
-					//	team.add(getShortPerson(assignment.getPersonId()));
+					if (!assignedPerson.isPresent())
+						team.add(getShortPerson(assignment.getPersonId()));
 				} else {
 					if (assignedPerson.isPresent())
 						team.removeIf(sp -> sp.getPersonId().equals(assignment.getPersonId()));
 				}
-			    ShortPerson shortPerson = new ShortPerson("1", "first", "last", "789456123");
-				team.add(shortPerson);
+			//    ShortPerson shortPerson = new ShortPerson("1", "first", "last", "789456123");
+				//team.add(shortPerson);
 				projectRepository.assignTask(tenantId, projectId, goalId, taskId, team);
 				break;
 			default:

@@ -1,14 +1,21 @@
-/*
+
 package com.advancedit.ppms;
 
 import com.advancedit.ppms.controllers.beans.Assignment;
-import org.bson.types.ObjectId;
+import com.advancedit.ppms.models.files.FileDescriptor;
+import com.advancedit.ppms.models.project.*;
+import com.advancedit.ppms.service.DocumentManagementService;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 
 import static org.junit.Assert.*;
 
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -17,16 +24,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.data.domain.Page;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import com.advancedit.ppms.models.project.Goal;
-import com.advancedit.ppms.models.project.GoalStatus;
-import com.advancedit.ppms.models.project.Project;
-import com.advancedit.ppms.models.project.ProjectStatus;
-import com.advancedit.ppms.models.project.ProjectSummary;
-import com.advancedit.ppms.models.project.Task;
 import com.advancedit.ppms.service.ProjectService;
+import org.thymeleaf.messageresolver.IMessageResolver;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -34,6 +35,9 @@ public class ProjectServiceTest {
 
 	@Autowired
 	private ProjectService projectService;
+
+	@Autowired
+	private DocumentManagementService documentManagementService;
 	
 	 private List<String> ids;
 
@@ -43,7 +47,55 @@ public class ProjectServiceTest {
 		ids = new ArrayList<>();
 	//	projectService.deleteAll();
 	}
-	 
+
+	private Path createFile() throws IOException {
+		Charset utf8 = StandardCharsets.UTF_8;
+		List<String> list = Arrays.asList("Line 1", "Line 2");
+
+
+			// If the file doesn't exists, create and write to it
+			// If the file exists, truncate (remove all content) and write to it
+			return Files.write(Paths.get("app.txt"), list, utf8);
+
+	}
+
+	/*private void readFile(){
+		// Read
+		try {
+			byte[] content = Files.readAllBytes(Paths.get("app.log"));
+			System.out.println(new String(content));
+
+			// for binary
+			//System.out.println(Arrays.toString(content));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}*/
+
+	@Test
+	public void uploadToAmazon() throws IOException {
+		Path path = Paths.get("app 4 lol.txt");
+		System.out.println("Path:" + path);
+		String key = documentManagementService.uploadFile2(path.toFile());
+		System.out.println("key:" + key);
+	}
+
+	@Test
+	public void download() throws IOException {
+	//	Path path = Paths.get("app 4 lol.txt");
+	//	System.out.println("Path:" + path);
+		byte[] data = documentManagementService.downloadFile("ORG 02 test/app3.txt");
+		Files.write(Paths.get("app_6.txt"), data);
+	}
+
+	@Test
+	public void deleteFile() throws IOException {
+		//	Path path = Paths.get("app 4 lol.txt");
+		//	System.out.println("Path:" + path);
+		documentManagementService.deleteFile("ORG 02 test/app3.txt");
+
+	}
+
 	@After
 	public void finalize() {
 		if (ids.isEmpty()){
@@ -53,7 +105,7 @@ public class ProjectServiceTest {
 	}
 	
 	
-
+/*
 	@Test
 	public void getPagedSummury() {
 	//	addProjects();
@@ -76,7 +128,7 @@ public class ProjectServiceTest {
 	}
 	
 
-	
+
 	@Test
 	public void saveProjects() {
 		
@@ -178,7 +230,7 @@ public class ProjectServiceTest {
 		assertEquals(savedGoal2.getName(), goal2.getName());
 		}
 		
-	}
+	}*/
 
 
 
@@ -193,13 +245,23 @@ public class ProjectServiceTest {
 		
 		
 		Project saved = projectService.addProject(tenantId, p);
-		
+
 		ids.add(p.getProjectId());
 		assertNotNull(saved.getProjectId());
 		assertEquals(p.getName(), saved.getName());
 		assertEquals(p.getStatus(), saved.getStatus());
-		
-		
+
+		projectService.addAttachment(tenantId, saved.getProjectId(), new FileDescriptor("test.txt", "ORG-01/test.txt", "txt", "txt"));
+		projectService.addAttachment(tenantId, saved.getProjectId(), new FileDescriptor("test2.txt", "ORG-01/test2.txt","txt", "txt"));
+
+		Project saved1 = projectService.getProjectsById(tenantId, saved.getProjectId());
+		assertEquals(saved1.getAttachments().size(), 2);
+
+		projectService.deleteAttachment(tenantId, saved.getProjectId(), "ORG-01/test.txt");
+
+		Project saved2 = projectService.getProjectsById(tenantId, saved.getProjectId());
+		assertEquals(saved2.getAttachments().size(), 1);
+
 		{
 		
 		Goal goal = new Goal();
@@ -268,6 +330,62 @@ public class ProjectServiceTest {
 			assertEquals(updatedTask.getStatus(), "PROGRESS");
 			assertEquals(updatedTask.getAssignedTo().get(0).getPersonId(), "1");
 
+			projectService.addAttachment(tenantId,  saved.getProjectId(), goalId, taskId,
+                    new FileDescriptor("test.txt", "ORG-01/test.txt", "","txt"));
+			projectService.addAttachment(tenantId,  saved.getProjectId(), goalId, taskId,
+					new FileDescriptor("test2.txt", "ORG-01/test2.txt","", "txt"));
+
+
+			Task  getTask = projectService.getTask(tenantId, saved.getProjectId(), goalId, taskId);
+            assertEquals(getTask.getAttachmentList().size(), 2);
+			assertEquals(getTask.getAttachmentList().get(0).getFileName(), "test.txt");
+			assertEquals(getTask.getAttachmentList().get(1).getFileName(), "test2.txt");
+
+
+			projectService.deleteAttachment(tenantId,  saved.getProjectId(), goalId, taskId, "ORG-01/test.txt");
+
+			Task  getTask2 = projectService.getTask(tenantId, saved.getProjectId(), goalId, taskId);
+			assertEquals(getTask2.getAttachmentList().size(), 1);
+			assertEquals(getTask2.getAttachmentList().get(0).getFileName(), "test2.txt");
+
+
+			Message m1 = new Message();
+			m1.setContent("m1");
+
+			 projectService.addMessage(tenantId, saved.getProjectId(), goalId, taskId, m1);
+
+			Message m2 = new Message();
+			m2.setContent("m2");
+			projectService.addMessage(tenantId, saved.getProjectId(), goalId, taskId, m2);
+			Task  getTaskWithMessage = projectService.getTask(tenantId, saved.getProjectId(), goalId, taskId);
+
+			assertEquals(getTaskWithMessage.getMessages().size(), 2);
+			assertEquals(getTaskWithMessage.getMessages().get(0).getContent(), m1.getContent());
+			assertEquals(getTaskWithMessage.getMessages().get(1).getContent(), m2.getContent());
+
+			Message savedMessage = getTaskWithMessage.getMessages().get(0);
+			savedMessage.setContent("m1-modified");
+
+			projectService.updateMessage(tenantId, saved.getProjectId(), goalId, taskId, savedMessage.getMessageId(), savedMessage);
+			Task  getTaskWithMessage11 = projectService.getTask(tenantId, saved.getProjectId(), goalId, taskId);
+			assertEquals(getTaskWithMessage11.getMessages().get(0).getContent(), savedMessage.getContent());
+
+			projectService.deleteAttachment(tenantId,  saved.getProjectId(), goalId, taskId, "ORG-01/test2.txt");
+			Task  getTask3 = projectService.getTask(tenantId, saved.getProjectId(), goalId, taskId);
+
+			assertEquals(getTask3.getAttachmentList().size(), 0);
+
+			projectService.addAttachment(tenantId,  saved.getProjectId(), goalId, taskId,
+					new FileDescriptor("test.txt", "ORG-01/test.txt", "", "txt"));
+			projectService.addAttachment(tenantId,  saved.getProjectId(), goalId, taskId,
+					new FileDescriptor("test2.txt", "ORG-01/test2.txt", "", "txt"));
+
+
+			Task  getTask4 = projectService.getTask(tenantId, saved.getProjectId(), goalId, taskId);
+			assertEquals(getTask4.getAttachmentList().size(), 2);
+			assertEquals(getTask4.getAttachmentList().get(0).getFileName(), "test.txt");
+			assertEquals(getTask4.getAttachmentList().get(1).getFileName(), "test2.txt");
+
 
 		}
 
@@ -309,5 +427,3 @@ public class ProjectServiceTest {
 	}
 
 }
-
-*/

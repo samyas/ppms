@@ -1,12 +1,10 @@
 package com.advancedit.ppms.repositories.impl;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 import com.advancedit.ppms.models.files.FileDescriptor;
 import com.advancedit.ppms.models.person.ShortPerson;
+import com.advancedit.ppms.models.project.*;
 import com.advancedit.ppms.repositories.ProjectCustomRepository;
 import com.mongodb.BasicDBObject;
 import com.mongodb.client.model.Filters;
@@ -28,10 +26,6 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 
 import com.advancedit.ppms.exceptions.PPMSException;
-import com.advancedit.ppms.models.project.Goal;
-import com.advancedit.ppms.models.project.Project;
-import com.advancedit.ppms.models.project.ProjectSummary;
-import com.advancedit.ppms.models.project.Task;
 import com.mongodb.client.result.UpdateResult;
 
 import javax.swing.plaf.basic.BasicListUI;
@@ -223,6 +217,37 @@ public class ProjectRepositoryImpl implements ProjectCustomRepository {
 			throw new PPMSException("Unable to delete attachment to task");
 		}
 	}
+
+	@Override
+	public String addMessage(long tenantId, String projectId, String goalId, String taskId, Message message){
+		Criteria findProjectCriteria = Criteria.where("projectId").is(projectId).and("tenantId").is(tenantId);
+		final Update update = new Update().addToSet("goals.$[i].tasks.$[j].messages", message)
+				.filterArray(Criteria.where("i._id").is(new ObjectId(goalId))).
+						filterArray(Criteria.where("j._id").is(new ObjectId(taskId)));
+		final UpdateResult wr = mongoTemplate.updateFirst(new BasicQuery(findProjectCriteria.getCriteriaObject()),
+				update, Project.class);
+		if (wr.getModifiedCount() != 1){
+			throw new PPMSException("Unable to add message to task");
+		}
+		return message.getMessageId();
+	}
+
+	@Override
+	public String updateMessage(long tenantId, String projectId, String goalId, String taskId, String messageId, Message message){
+		Criteria findProjectCriteria = Criteria.where("projectId").is(projectId).and("tenantId").is(tenantId);
+		final Update update = new Update().set("goals.$[i].tasks.$[j].messages.$[k].content", message.getContent())
+				.set("goals.$[i].tasks.$[j].messages.$[k].modifiedTime", new Date())
+				.filterArray(Criteria.where("i._id").is(new ObjectId(goalId))).
+						filterArray(Criteria.where("j._id").is(new ObjectId(taskId)))
+				.filterArray(Criteria.where("k._id").is(new ObjectId(messageId)));
+		final UpdateResult wr = mongoTemplate.updateFirst(new BasicQuery(findProjectCriteria.getCriteriaObject()),
+				update, Project.class);
+		if (wr.getModifiedCount() != 1){
+			throw new PPMSException("Unable to update message to task");
+		}
+		return message.getMessageId();
+	}
+
 
 	@Override
 	public Task addTask(long tenantId, String projectId, String goalId, Task task) {

@@ -20,10 +20,10 @@ import static com.advancedit.ppms.utils.GeneralUtils.decode;
 @PropertySource("classpath:application.properties")
 public class ExternalServiceConfig {
 
-   @Value("${cloud.aws.credentials.accessKey}")
-   String accessKey;
-   @Value("${cloud.aws.credentials.secretKey}")
-   String accessSecret;
+  // @Value("${cloud.aws.credentials.accessKey}")
+   String accessKey = "QUtJQTZIQkJKT08zVExKWkg1VVk=";
+//   @Value("${cloud.aws.credentials.secretKey}")
+   String accessSecret = "QW9rS2ZDVzloQitHY0hwaWdYZno2WXBhdmcrZDFNN3RaMUFHN21OWA==";
 
    @Value("${cloud.aws.region.static}") String region;
 

@@ -5,13 +5,9 @@ import java.util.Optional;
 
 import com.advancedit.ppms.models.files.FileDescriptor;
 import com.advancedit.ppms.models.person.ShortPerson;
-import com.advancedit.ppms.models.project.Project;
+import com.advancedit.ppms.models.project.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-
-import com.advancedit.ppms.models.project.Goal;
-import com.advancedit.ppms.models.project.ProjectSummary;
-import com.advancedit.ppms.models.project.Task;
 
 public interface ProjectCustomRepository {
 
@@ -55,5 +51,7 @@ public interface ProjectCustomRepository {
 
     void deleteAttachment(long tenantId, String projectId, String goalId, String taskId, String fileName);
 
+    String addMessage(long tenantId, String projectId, String goalId, String taskId, Message message);
 
+    String updateMessage(long tenantId, String projectId, String goalId, String taskId, String messageId, Message message);
 }

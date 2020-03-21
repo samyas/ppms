@@ -9,11 +9,15 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import com.advancedit.ppms.models.person.ShortPerson;
 
+@Document
 public class Message {
-	
+	@Id
+	private String messageId;
+
 	private String content;
 	private Date start;
 	private ShortPerson writer;
+	private Date modifiedTime;
 	private List<Message> replies = new ArrayList<>();
 	public String getContent() {
 		return content;
@@ -39,8 +43,20 @@ public class Message {
 	public void setReplies(List<Message> replies) {
 		this.replies = replies;
 	}
-	
-	
-	
 
+	public String getMessageId() {
+		return messageId;
+	}
+
+	public void setMessageId(String messageId) {
+		this.messageId = messageId;
+	}
+
+	public Date getModifiedTime() {
+		return modifiedTime;
+	}
+
+	public void setModifiedTime(Date modifiedTime) {
+		this.modifiedTime = modifiedTime;
+	}
 }

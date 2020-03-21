@@ -12,6 +12,7 @@ import com.advancedit.ppms.exceptions.PPMSException;
 import com.advancedit.ppms.models.organisation.Organisation;
 import com.advancedit.ppms.models.person.Person;
 import com.advancedit.ppms.models.person.ShortPerson;
+import com.advancedit.ppms.models.project.Message;
 import com.advancedit.ppms.models.user.Role;
 import com.advancedit.ppms.service.OrganisationService;
 import com.advancedit.ppms.service.PersonService;
@@ -171,9 +172,23 @@ public class ProjectController {
     	return projectService.updateTask(getCurrentTenantId(), projectId, goalId, taskId, task);
     }
 
+    @RequestMapping(method=RequestMethod.POST, value="/api/projects/{projectId}/goals/{goalId}/tasks/{taskId}/messages")
+    public String addMessage(@PathVariable String projectId, @PathVariable String goalId, @PathVariable String taskId, @RequestBody Message message) {
+        LoggedUserInfo loggedUserInfo = getLoggedUserInfo();
+        Person person = personService.getPersonByEmail(loggedUserInfo.getTenantId(), loggedUserInfo.getEmail());
+        message.setWriter(new ShortPerson(person.getId(), person.getFirstName(), person.getLastName(), person.getPhotoFileId()));
+        return projectService.addMessage(getCurrentTenantId(), projectId, goalId, taskId, message);
+    }
+
+    @RequestMapping(method=RequestMethod.POST, value="/api/projects/{projectId}/goals/{goalId}/tasks/{taskId}/messages/{messageId}")
+    public String updateMessage(@PathVariable String projectId, @PathVariable String goalId,
+                             @PathVariable String taskId, @PathVariable String messageId, @RequestBody Message message) {
+        return projectService.updateMessage(getCurrentTenantId(), projectId, goalId, taskId, messageId, message);
+    }
+
     @RequestMapping(method=RequestMethod.POST, value="/api/projects/{projectId}/goals/{goalId}/tasks/{taskId}/status")
     public void updateTaskStatus(@PathVariable String projectId, @PathVariable String goalId, @PathVariable String taskId, @RequestBody String status) {
-         projectService.updateTaskStatus(getCurrentTenantId(), projectId, goalId, taskId, status);
+        projectService.updateTaskStatus(getCurrentTenantId(), projectId, goalId, taskId, status);
     }
 
     @RequestMapping(method=RequestMethod.POST, value="/api/projects/{projectId}/goals/{goalId}/tasks/{taskId}/assign")

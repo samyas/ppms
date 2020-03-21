@@ -11,11 +11,8 @@ import com.advancedit.ppms.models.person.ShortPerson;
 
 @Document
 public class Task {
-
-
 	@Id
 	private String taskId;
-	
 	private String name;
 	private String shortDescription;
 	private String description;
