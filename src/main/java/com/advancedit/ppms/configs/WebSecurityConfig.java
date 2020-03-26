@@ -44,8 +44,12 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 				.antMatchers("/api/auth/validate-creator").permitAll()
 				.antMatchers("/api/auth/validate-join-request").permitAll()
 				.antMatchers("/api/auth/getToken").permitAll()
+				.antMatchers("/api/auth/reset-password-request").permitAll()
+				.antMatchers("/api/auth/validate-reset-request").permitAll()
+				.antMatchers("/api/auth/reset-password").permitAll()
 
-			//	.antMatchers("/api/projects/**").hasAnyAuthority(Role.ADMIN.name(), Role.STAFF.name(), Role.STUDENT.name()).anyRequest().authenticated()
+
+				//	.antMatchers("/api/projects/**").hasAnyAuthority(Role.ADMIN.name(), Role.STAFF.name(), Role.STUDENT.name()).anyRequest().authenticated()
 			//	.antMatchers("/api/persons/**").hasAnyAuthority(Role.ADMIN.name(), Role.STAFF.name(), Role.STUDENT.name()).anyRequest().authenticated()
 			//	.antMatchers("/api/users/**").hasAnyAuthority(Role.ADMIN.name(), Role.STAFF.name(), Role.STUDENT.name()).anyRequest().authenticated()
 

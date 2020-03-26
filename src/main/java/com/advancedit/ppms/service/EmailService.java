@@ -54,7 +54,7 @@ public class EmailService {
 		emailBean.setMessage(generateHtmlContent("mail-template", data));
 
 		emailBean.setFrom("abdessalemsamet@gmail.com");
-    	emailBean.setTo(asList("slouma.ensi@gmail.com"));
+    	emailBean.setTo(asList("imed.romdhani@gmail.com"));
     	emailBean.setSubject("Join 3C");
     	emailClient.send(emailBean);
     }
@@ -72,8 +72,27 @@ public class EmailService {
 		emailBean.setMessage(generateHtmlContent("confirm-mail-template", data));
 
 		emailBean.setFrom("abdessalemsamet@gmail.com");
-		emailBean.setTo(asList( "slouma.ensi@gmail.com"));
+		emailBean.setTo(asList( "imed.romdhani@gmail.com"));
 		emailBean.setSubject("Welcome to 3C");
+		emailClient.send(emailBean);
+	}
+
+
+	public void sendRestPassword(User receiver, VerificationToken verificationToken,
+									  String domain){
+
+		EmailBean emailBean = new EmailBean();
+		emailBean.setHtml(true);
+		Map<String, Object> data = new HashMap<>();
+		data.put("receiverFirstName", receiver.getFirstName());
+		data.put("receiverLastName", receiver.getLastName());
+		data.put("token", encode(verificationToken.getEmail() + ":" + verificationToken.getToken()));
+		data.put("domain", domain);
+		emailBean.setMessage(generateHtmlContent("reset-password-template", data));
+
+		emailBean.setFrom("abdessalemsamet@gmail.com");
+		emailBean.setTo(asList( "imed.romdhani@gmail.com"));
+		emailBean.setSubject("3C : Reset Password");
 		emailClient.send(emailBean);
 	}
 

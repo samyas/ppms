@@ -116,6 +116,23 @@ public class AuthController {
 		return ResponseEntity.ok(userId);
 	}
 
+
+	@RequestMapping(method= RequestMethod.POST, value="/reset-password-request")
+	public ResponseEntity resetPassword(@RequestBody String emailOrUsername , HttpServletRequest request) {
+
+		Optional<User> user = Optional.ofNullable(userService.getUserByEmail(emailOrUsername));
+		if (!user.isPresent()){
+			user = Optional.ofNullable(userService.getUserByUsername(emailOrUsername));
+		}
+		if (!user.isPresent()){
+			throw  new PPMSException(String.format("%s was not found", emailOrUsername));
+		}
+		VerificationToken verificationToken = verificationTokenService.generateValidationEmailToken(0, user.get().getEmail());
+		// Send email to the user
+		emailService.sendRestPassword(user.get(), verificationToken, request.getHeader("Origin"));
+		return ResponseEntity.noContent().build();
+	}
+
 	private Role getRoleFromPersonFunction(Person person){
 		if (STAFF.equals(person.getPersonfunction())){
 			return  Role.STAFF;
@@ -131,6 +148,7 @@ public class AuthController {
 		}
 		return null;
 	}
+
 	@RequestMapping(method= RequestMethod.GET, value="/validate-join-request")
 	public ValidationTokenResponseBean validateJoinRequestToken(@RequestParam("token") String emailToken) {
 		ValidationTokenResponseBean validationTokenResponseBean = new ValidationTokenResponseBean();
@@ -152,6 +170,28 @@ public class AuthController {
 			validationTokenResponseBean.setResult(ValidationTokenResponseBean.ValidationTokenResult.REGISTER);
 		}
 		return validationTokenResponseBean;
+	}
+
+	@RequestMapping(method= RequestMethod.GET, value="/validate-reset-request")
+	public ValidationTokenResponseBean validateResetToken(@RequestParam("token") String emailToken) {
+		ValidationTokenResponseBean validationTokenResponseBean = new ValidationTokenResponseBean();
+		VerificationToken verificationToken = verificationTokenService.validateToken(emailToken);
+		validationTokenResponseBean.setToken(emailToken);
+		User user = Optional.ofNullable(userService.getUserByEmail(verificationToken.getEmail()))
+				.orElseThrow(() -> new IllegalStateException("User not found"));
+		validationTokenResponseBean.setUsername(user.getUsername());
+		validationTokenResponseBean.setToken(emailToken);
+		validationTokenResponseBean.setEmail(verificationToken.getEmail());
+		return validationTokenResponseBean;
+	}
+
+	@RequestMapping(method= RequestMethod.POST, value="/reset-password")
+	public ResponseEntity resetPassword(@RequestBody RegisterUserBean userBean) {
+		VerificationToken verificationToken = Optional.ofNullable(userBean.getEmailToken()).map(et ->
+				verificationTokenService.validateToken(et))
+				.orElseThrow(() -> new PPMSException("Token is empty or invalid"));
+		userService.updatePassword(verificationToken.getEmail(), userBean.getPassword());
+		return ResponseEntity.noContent().build();
 	}
 
 	@RequestMapping(method= RequestMethod.GET, value="/validate-creator")

@@ -12,6 +12,7 @@ public class ValidationTokenResponseBean {
     private ValidationTokenResult result = ValidationTokenResult.REGISTER;
     private boolean creator = false;
     private String email;
+    private String username;
 
    public enum ValidationTokenResult{
         REGISTER,

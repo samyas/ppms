@@ -91,6 +91,14 @@ public class UserService {
 		return userRepository.save(user);
 	}
 
+	public void updatePassword(String email, String newPassword){
+		User user = Optional.ofNullable(userRepository.findByEmail(email))
+				.orElseThrow(() -> new PPMSException("Email:" + email + " not exists"));
+		user.setPassword(bCryptPasswordEncoder.encode(newPassword));
+		userRepository.save(user);
+
+	}
+
 	public void activateAdminCreatorAccount(String userId) {
 		User user = getUserById(userId);
 		if (!user.isEmailIsValid()){
