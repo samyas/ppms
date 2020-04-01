@@ -1,13 +1,16 @@
 package com.advancedit.ppms.service;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
-import java.util.function.Supplier;
-
+import com.advancedit.ppms.controllers.beans.Apply;
+import com.advancedit.ppms.controllers.beans.Assignment;
+import com.advancedit.ppms.controllers.beans.Assignment.Action;
+import com.advancedit.ppms.exceptions.ErrorCode;
+import com.advancedit.ppms.exceptions.PPMSException;
 import com.advancedit.ppms.models.files.FileDescriptor;
+import com.advancedit.ppms.models.person.ShortPerson;
 import com.advancedit.ppms.models.project.*;
+import com.advancedit.ppms.repositories.FileStorageRepository;
+import com.advancedit.ppms.repositories.PersonRepository;
+import com.advancedit.ppms.repositories.ProjectRepository;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -16,15 +19,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
-import com.advancedit.ppms.controllers.beans.Apply;
-import com.advancedit.ppms.controllers.beans.Assignment;
-import com.advancedit.ppms.controllers.beans.Assignment.Action;
-import com.advancedit.ppms.exceptions.ErrorCode;
-import com.advancedit.ppms.exceptions.PPMSException;
-import com.advancedit.ppms.models.person.ShortPerson;
-import com.advancedit.ppms.repositories.FileStorageRepository;
-import com.advancedit.ppms.repositories.PersonRepository;
-import com.advancedit.ppms.repositories.ProjectRepository;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Supplier;
 
 @Service
 public class ProjectService {
@@ -37,6 +36,8 @@ public class ProjectService {
 
 	@Autowired
 	private FileStorageRepository fileStorageRepository;
+
+	/***************************** PROJECTS***********************************/
 
 	public List<Project> getAllProjects(long tenantId) {
 		return projectRepository.findAll();
@@ -80,11 +81,9 @@ public class ProjectService {
 					String.format("Project id not found '%s'.", id));
 	}
 
-	public Project updateProject(long tenantId, String id, Project project) {
+	public String updateProject(long tenantId, String id, Project project) {
 		checkIfProjectExist(tenantId, id);
-		project.setTenantId(tenantId);
-		project.setProjectId(id);
-		return projectRepository.save(project);
+		return projectRepository.updateProjectNameAndDescriptionAndKeywords(tenantId, id, project);
 
 	}
 
@@ -98,51 +97,35 @@ public class ProjectService {
 	}
 
 	public void assign(long tenantId, String projectId, Assignment assignment) {
-		Project project = projectRepository.findById(projectId)
-				.filter(project1 -> project1.getTenantId() == tenantId)
-				.orElseThrow(() -> new PPMSException(ErrorCode.PROJECT_ID_NOT_FOUND,
-						String.format("Project id not found '%s'.", projectId)));
-		switch (assignment.getPosition()) {
-		case EXAMINATOR:
-			project.setExaminator(
-					getShortPersonIfAdd(assignment.getAction(), () -> getShortPerson(assignment.getPersonId())));
-			break;
-		case SUPERVISOR:
-			project.setSupervisor(
-					getShortPersonIfAdd(assignment.getAction(), () -> getShortPerson(assignment.getPersonId())));
-			break;
-		case TEAM:
-			List<ShortPerson> team = project.getTeam() != null ? project.getTeam() : new ArrayList<>();
-			Optional<ShortPerson> assignedPerson = team.stream()
-					.filter(sp -> sp.getPersonId().equals(assignment.getPersonId())).findFirst();
-			if (assignment.getAction().equals(Action.ADD)) {
-				if (!assignedPerson.isPresent())
-					team.add(getShortPerson(assignment.getPersonId()));
-			} else {
-				if (assignedPerson.isPresent())
-					team.removeIf(sp -> sp.getPersonId().equals(assignment.getPersonId()));
-			}
-			project.setTeam(team);
-			break;
-		default:
-			break;
-
+		if (assignment.getAction().equals(Action.ADD)){
+			projectRepository.assignPerson(tenantId, projectId, assignment.getPosition().getAttribute(),
+					getShortPerson(tenantId, assignment.getPersonId()));
+		} else if (assignment.getAction().equals(Action.REMOVE)){
+			projectRepository.unAssignPerson(tenantId, projectId, assignment.getPosition().getAttribute(),
+					assignment.getPersonId());
 		}
-		projectRepository.save(project);
 	}
 
-	private ShortPerson getShortPerson(String personId) {
-		return personRepository.findById(personId)
+	public void addAttachment(long tenantId, String projectId, FileDescriptor fileDescriptor) {
+		projectRepository.addAttachment(tenantId, projectId, fileDescriptor);
+	}
+
+	public void deleteAttachment(long tenantId, String projectId, String key) {
+		projectRepository.deleteAttachment(tenantId, projectId, key);
+	}
+
+	public void updateStatus(long tenantId, String projectId, String status) {
+		projectRepository.updateProjectStatus(tenantId, projectId, status);
+	}
+
+	private ShortPerson getShortPerson(long tenantId, String personId) {
+		return personRepository.findByTenantIdAndPersonId(tenantId, personId)
 				.map(p -> new ShortPerson(p.getId(), p.getFirstName(), p.getLastName(), p.getPhotoFileId()))
 				.orElseThrow(() -> new PPMSException(ErrorCode.PERSON_ID_NOT_FOUND,
 						String.format("Person id not found '%s'.", personId)));
-
 	}
 
-	private ShortPerson getShortPersonIfAdd(Action action, Supplier<ShortPerson> getPerson) {
-		return (!action.equals(Action.ADD)) ? null : getPerson.get();
-	}
-
+    /****************************** GOALS*************************************************/
 	public Goal getGoal(long tenantId, String projectId, String goalId) {
 		return projectRepository.getGoal(tenantId, projectId, goalId)
 				.orElseThrow(() -> new IllegalStateException(String.format("Goal [%s] not found", goalId)));
@@ -154,23 +137,21 @@ public class ProjectService {
 	}
 
 	public String updateGoal(long tenantId, String projectId, String goalId, Goal goal) {
-	    goal.setGoalId(goalId);
-		projectRepository.updateGoal(tenantId, projectId, goal);
+		projectRepository.updateGoalNameAndDescription(tenantId, projectId, goalId, goal);
 		return goalId;
 	}
+
+	public void deleteGoal(long tenantId, String projectId, String goalId) {
+		projectRepository.deleteGoal(tenantId, projectId, goalId);
+	}
+
+
+
+	/****************************** TASKS*************************************************/
 
 	public Task getTask(long tenantId, String projectId, String goalId, String taskId) {
 		return projectRepository.getTask(tenantId, projectId, goalId, taskId)
 				.orElseThrow(() -> new IllegalStateException(String.format("Task [%s] not found", taskId)));
-
-		/*Project project = projectRepository.findById(projectId)
-				.orElseThrow(() -> new PPMSException(ErrorCode.PROJECT_ID_NOT_FOUND,
-						String.format("Project id not found '%s'.", projectId)));
-		Goal goal = project.getGoals().stream().filter(g -> g.getGoalId().equals(goalId)).findFirst()
-				.orElseThrow(() -> new IllegalStateException(String.format("Goal [%s] not found", goalId)));
-
-		return goal.getTasks().stream().filter(t -> t.getTaskId().equals(taskId)).findFirst()
-				.orElseThrow(() -> new IllegalStateException(String.format("Task [%s] not found", taskId)));*/
 	}
 
 	public String addNewTask(long tenantId, String projectId, String goalId, Task task) {
@@ -182,12 +163,12 @@ public class ProjectService {
 		projectRepository.updateTaskStatus(tenantId, projectId, goalId, taskId, status);
 	}
 
-	public void addAttachment(long tenantId, String projectId, FileDescriptor fileDescriptor) {
-		projectRepository.addAttachment(tenantId, projectId, fileDescriptor);
+	public String updateTask(long tenantId, String projectId, String goalId, String taskId, Task task) {
+		return projectRepository.updateTaskNameAndDescription(tenantId, projectId, goalId, taskId, task);
 	}
 
-	public void deleteAttachment(long tenantId, String projectId, String url) {
-		projectRepository.deleteAttachment(tenantId, projectId, url);
+	public void deleteTask(long tenantId, String projectId, String goalId, String taskId) {
+		projectRepository.deleteTask(tenantId, projectId, goalId, taskId);
 	}
 
 	public void addAttachment(long tenantId, String projectId, String goalId, String taskId, FileDescriptor fileDescriptor) {
@@ -198,7 +179,6 @@ public class ProjectService {
 		projectRepository.deleteAttachment(tenantId, projectId, goalId, taskId, url);
 	}
 
-
 	public String addMessage(long tenantId, String projectId, String goalId,
 							 String taskId, Message message) {
 		message.setMessageId(new ObjectId().toHexString());
@@ -208,61 +188,22 @@ public class ProjectService {
 
 	public String updateMessage(long tenantId, String projectId, String goalId,
 								String taskId, String messageId, Message message) {
-
 		return projectRepository.updateMessage(tenantId, projectId, goalId, taskId, messageId, message);
 	}
 
 	public void assignTask(long tenantId, String projectId, String goalId, String taskId, Assignment assignment) {
-		Task task = projectRepository.getTask(tenantId, projectId, goalId, taskId)
-				.orElseThrow(() -> new PPMSException(ErrorCode.TASK_ID_NOT_FOUND,
-						String.format("Task id not found '%s'.", taskId)));
-		switch (assignment.getPosition()) {
-			case EXAMINATOR:
-			case SUPERVISOR:
-			case TEAM:
-				List<ShortPerson> team = task.getAssignedTo() != null ? task.getAssignedTo() : new ArrayList<>();
-				Optional<ShortPerson> assignedPerson = team.stream()
-						.filter(sp -> sp.getPersonId().equals(assignment.getPersonId())).findFirst();
-				if (assignment.getAction().equals(Action.ADD)) {
-					if (!assignedPerson.isPresent())
-						team.add(getShortPerson(assignment.getPersonId()));
-				} else {
-					if (assignedPerson.isPresent())
-						team.removeIf(sp -> sp.getPersonId().equals(assignment.getPersonId()));
-				}
-			//    ShortPerson shortPerson = new ShortPerson("1", "first", "last", "789456123");
-				//team.add(shortPerson);
-				projectRepository.assignTask(tenantId, projectId, goalId, taskId, team);
-				break;
-			default:
-				break;
-
+		if (assignment.getAction().equals(Action.ADD)){
+			projectRepository.assignPerson(tenantId, projectId, goalId, taskId,
+					getShortPerson(tenantId, assignment.getPersonId()));
+		} else if (assignment.getAction().equals(Action.REMOVE)){
+			projectRepository.unAssignPerson(tenantId, projectId, goalId, taskId,
+					assignment.getPersonId());
 		}
 	}
 
-	public void updateStatus(long tenantId, String projectId, String status) {
-		projectRepository.updateProjectStatus(tenantId, projectId, status);
-	}
 
-	public String updateTask(long tenantId, String projectId, String goalId, String taskId, Task task) {
-		// TODO Auto-generated method stub
-		return null;
-	}
 
-	public void deleteGoal(long tenantId, String projectId, String goalId) {
-		// TODO Auto-generated method stub
 
-	}
-
-	public void deleteTask(long tenantId, String projectId, String goalId, String taskId) {
-		// TODO Auto-generated method stub
-
-	}
-
-	public void deleteProject(long tenantId, String id) {
-		projectRepository.deleteById(id);
-
-	}
 
 	public void apply(long tenantId, String projectId, Apply apply) {
 		Project p = getProjectsById(tenantId, projectId);

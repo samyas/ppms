@@ -14,44 +14,56 @@ public interface ProjectCustomRepository {
 	Page<ProjectSummary> getPagedProjectSummary(long tenantId, int page, int size, Pageable pageable);
 
 	Page<Project> findByAll(long tenantId, String departmentId, Pageable pageable);
-	
-
-    Optional<Goal> getGoal(long tenantId, String projectId, String goalId);
-    
-    
-    Goal addGoal(long tenantId, String projectId, Goal goal);
-
-    Task addTask(long tenantId, String projectId, String goalId, Task task);
-    
-    
-    Optional<Task> getTask(long tenantId, String projectId, String goalId, String taskId);
-    
-
-	void updateGoal(long tenantId, String projectId, Goal goal);
-
-    void updateTaskStatus(long tenantId, String projectId, String goalId, String taskId, String status);
-
-    void assignTask(long tenantId, String projectId, String goalId, String taskId, List<ShortPerson> shortPersonList);
-
-    void updateProjectStatus(long tenantId, String projectId, String status);
-
 
     boolean existByProjectIdAndTenantId(String projectId, long tenantId);
 
+    void updateProjectStatus(long tenantId, String projectId, String status);
+
+    String updateProjectNameAndDescriptionAndKeywords(long tenantId, String projectId, Project project);
+
+    void assignPerson(long tenantId, String projectId, String key, ShortPerson shortPerson);
+
+    void unAssignPerson(long tenantId, String projectId, String key, String personId);
 
     void addAttachment(long tenantId, String projectId, FileDescriptor fileDescriptor);
 
-    void addAttachment(long tenantId, String projectId, String goalId, FileDescriptor fileDescriptor);
-
-    void addAttachment(long tenantId, String projectId, String goalId, String taskId, FileDescriptor fileDescriptor);
-
     void deleteAttachment(long tenantId, String projectId, String fileName);
 
+    /************************** GOALS OPS************************************/
+
+    Optional<Goal> getGoal(long tenantId, String projectId, String goalId);
+
+    void addAttachment(long tenantId, String projectId, String goalId, FileDescriptor fileDescriptor);
+
     void deleteAttachment(long tenantId, String projectId, String goalId, String fileName);
+
+    Goal addGoal(long tenantId, String projectId, Goal goal);
+
+	String updateGoalNameAndDescription(long tenantId, String projectId, String goalId, Goal goal);
+
+    void deleteGoal(long tenantId, String projectId, String goalId);
+
+    /************************** TASKS OPS************************************/
+
+    Task addTask(long tenantId, String projectId, String goalId, Task task);
+
+    Optional<Task> getTask(long tenantId, String projectId, String goalId, String taskId);
+
+    String updateTaskNameAndDescription(long tenantId, String projectId, String goalId, String taskId, Task task);
+
+    void updateTaskStatus(long tenantId, String projectId, String goalId, String taskId, String status);
+
+    void assignPerson(long tenantId, String projectId,  String goalId, String taskId, ShortPerson shortPerson);
+
+    void unAssignPerson(long tenantId, String projectId, String goalId, String taskId, String personId);
+
+    void addAttachment(long tenantId, String projectId, String goalId, String taskId, FileDescriptor fileDescriptor);
 
     void deleteAttachment(long tenantId, String projectId, String goalId, String taskId, String fileName);
 
     String addMessage(long tenantId, String projectId, String goalId, String taskId, Message message);
 
     String updateMessage(long tenantId, String projectId, String goalId, String taskId, String messageId, Message message);
+
+    void deleteTask(long tenantId, String projectId, String goalId, String taskId);
 }

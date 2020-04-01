@@ -81,11 +81,7 @@ public class ProjectController {
     	 
     }
     
-    @RequestMapping(method=RequestMethod.POST, value="/api/projects/{projectId}/goal")
-    public String addGoal(@PathVariable String projectId, @RequestBody Goal goal) {
-    	return projectService.addGoal(getCurrentTenantId(), projectId, goal);
-    	 
-    }
+
 
     @RequestMapping(method=RequestMethod.POST, value="/api/projects")
     public String save(@RequestBody Project project) {
@@ -97,7 +93,7 @@ public class ProjectController {
     
     @RequestMapping(method=RequestMethod.PUT, value="/api/projects/{id}")
     public String update(@PathVariable String id, @RequestBody Project project) {
-    	return projectService.updateProject(getCurrentTenantId(), id, project).getProjectId();
+    	return projectService.updateProject(getCurrentTenantId(), id, project);
     }
 
     @RequestMapping(method=RequestMethod.PUT, value="/api/projects/{id}/status")
@@ -124,11 +120,16 @@ public class ProjectController {
     
     @RequestMapping(method=RequestMethod.DELETE, value="/api/projects/{id}")
     public void deleteProject(@PathVariable String id) {
-    	 projectService.deleteProject(getCurrentTenantId(), id);
+    	 projectService.delete(getCurrentTenantId(), id);
     }
     
-    
-    
+    /****************************************Goals*************************************************************/
+    @RequestMapping(method=RequestMethod.POST, value="/api/projects/{projectId}/goal")
+    public String addGoal(@PathVariable String projectId, @RequestBody Goal goal) {
+        return projectService.addGoal(getCurrentTenantId(), projectId, goal);
+
+    }
+
     @RequestMapping(method=RequestMethod.GET, value="/api/projects/{projectId}/goals/{goalId}")
     public Goal getGoal(@PathVariable String projectId, @PathVariable String goalId) {
     	return projectService.getGoal(getCurrentTenantId(), projectId, goalId);
@@ -150,7 +151,8 @@ public class ProjectController {
     public String updateGoal(@PathVariable String projectId, @PathVariable String goalId, @RequestBody Goal goal) {
     	return projectService.updateGoal(getCurrentTenantId(), projectId, goalId, goal);
     }
-    
+
+    /******************************************** TASKS********************************************************/
     @RequestMapping(method=RequestMethod.GET, value="/api/projects/{projectId}/goals/{goalId}/tasks/{taskId}")
     public Task getTask(@PathVariable String projectId, @PathVariable String goalId, @PathVariable String taskId) {
     	return projectService.getTask(getCurrentTenantId(), projectId, goalId, taskId);
@@ -167,7 +169,7 @@ public class ProjectController {
     	return projectService.addNewTask(getCurrentTenantId(), projectId, goalId, task);
     }
     
-    @RequestMapping(method=RequestMethod.POST, value="/api/projects/{projectId}/goal/{goalId}/tasks/{taskId}")
+    @RequestMapping(method=RequestMethod.PUT, value="/api/projects/{projectId}/goals/{goalId}/tasks/{taskId}")
     public String updateTask(@PathVariable String projectId, @PathVariable String goalId, @PathVariable String taskId, @RequestBody Task task) {
     	return projectService.updateTask(getCurrentTenantId(), projectId, goalId, taskId, task);
     }

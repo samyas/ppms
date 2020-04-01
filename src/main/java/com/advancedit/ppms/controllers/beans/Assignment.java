@@ -37,10 +37,20 @@ public class Assignment {
 	}
 
 	public enum Position {
-		TEAM,
-		EXAMINATOR,
-		SUPERVISOR,
-		REPORTER
+		TEAM("team"),
+		EXAMINATOR("examinators"),
+		SUPERVISOR("supervisors"),
+		REPORTER("");
+
+		String attribute;
+
+		Position(String attribute) {
+			this.attribute = attribute;
+		}
+
+		public String getAttribute() {
+			return attribute;
+		}
 	}
 }
 

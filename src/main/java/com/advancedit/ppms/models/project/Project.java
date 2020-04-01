@@ -38,6 +38,8 @@ public class Project {
 	private List<ShortPerson> team = new ArrayList<>();
 	private ShortPerson supervisor;
     private ShortPerson examinator;
+    private List<ShortPerson> supervisors = new ArrayList<>();
+    private List<ShortPerson> examinators = new ArrayList<>();
     private ShortPerson creator;
     private List<ShortPerson> assignedTo = new ArrayList<>();
 	private String departmentId;

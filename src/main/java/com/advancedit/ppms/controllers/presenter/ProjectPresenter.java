@@ -29,6 +29,8 @@ public class ProjectPresenter {
         projectResource.setTeam(project.getTeam());
         projectResource.setSupervisor(project.getSupervisor());
         projectResource.setExaminator(project.getExaminator());
+        projectResource.setSupervisors(project.getSupervisors());
+        projectResource.setExaminators(project.getExaminators());
         projectResource.setCreator(project.getCreator());
         projectResource.setAssignedTo(project.getAssignedTo());
         projectResource.setDepartment(getDepartment(project.getDepartmentId(), organisation));
@@ -49,8 +51,8 @@ public class ProjectPresenter {
     private static boolean isBelongToProjectTeam(String personId, Project project){
         List<String> projectPersonIds = new ArrayList<>();
         Optional.ofNullable(project.getCreator()).map(ShortPerson::getPersonId).ifPresent(projectPersonIds::add);
-        Optional.ofNullable(project.getSupervisor()).map(ShortPerson::getPersonId).ifPresent(projectPersonIds::add);
-        Optional.ofNullable(project.getExaminator()).map(ShortPerson::getPersonId).ifPresent(projectPersonIds::add);
+        project.getSupervisors().stream().map(ShortPerson::getPersonId).forEach(projectPersonIds::add);
+        project.getExaminators().stream().map(ShortPerson::getPersonId).forEach(projectPersonIds::add);
         project.getTeam().stream().map(ShortPerson::getPersonId).forEach(projectPersonIds::add);
         return projectPersonIds.contains(personId);
     }

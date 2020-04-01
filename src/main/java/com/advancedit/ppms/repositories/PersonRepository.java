@@ -14,7 +14,6 @@ public interface PersonRepository extends MongoRepository<Person, String>, Perso
 
 	Person findByEmail(String email);
 
-
 	List<Person> findByTenantId(long tenantId);
 
 	Person findByTenantIdAndEmail(long tenantId, String email);

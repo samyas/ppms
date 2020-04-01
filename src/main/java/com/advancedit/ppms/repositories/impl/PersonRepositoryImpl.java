@@ -18,6 +18,7 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
@@ -59,5 +60,13 @@ public class PersonRepositoryImpl implements PersonCustomRepository {
 		if (wr.getModifiedCount() != 1){
 			throw new PPMSException("Unable to set image");
 		}
+	}
+
+	@Override
+	public Optional<Person> findByTenantIdAndPersonId(long tenantId, String personId) {
+		final BasicQuery query = new BasicQuery(Criteria.where("id").is(personId).and("tenantId").is(tenantId)
+				.getCriteriaObject());
+		return Optional.ofNullable(mongoTemplate.findOne(query, Person.class));
+
 	}
 }
