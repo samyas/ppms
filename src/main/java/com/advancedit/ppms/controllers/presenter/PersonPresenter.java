@@ -1,13 +1,43 @@
 package com.advancedit.ppms.controllers.presenter;
 
 import com.advancedit.ppms.controllers.beans.PersonResource;
+import com.advancedit.ppms.exceptions.PPMSException;
+import com.advancedit.ppms.models.organisation.Department;
 import com.advancedit.ppms.models.organisation.Organisation;
 import com.advancedit.ppms.models.organisation.ShortDepartment;
 import com.advancedit.ppms.models.person.Person;
+import com.advancedit.ppms.models.person.PersonFunction;
+import com.advancedit.ppms.models.person.ShortPerson;
+
+import java.util.Optional;
+import java.util.function.Function;
+
+import static com.advancedit.ppms.models.person.PersonFunction.isStaff;
 
 public class PersonPresenter {
 
+
     public static PersonResource toResource(Person person, Organisation organisation){
+       Optional<Department> department = organisation.getDepartments()
+               .stream().filter(d -> d.getId().equals(person.getDepartmentId())).findFirst();
+
+        if (department.isPresent() && isStaff(person.getPersonfunction())){
+            Optional.ofNullable(department.get().getResponsible())
+                    .map(ShortPerson::getPersonId)
+                    .map(pId -> {
+                        if (pId.equals(person.getId())) {
+                            person.setPersonfunction(PersonFunction.MODEL_LEADER);
+                        } else {
+                            person.setPersonfunction(PersonFunction.STAFF);
+                        }
+                        return person;
+                    }).orElseGet( () -> {
+                person.setPersonfunction(PersonFunction.STAFF);
+                        return person;
+            });
+       }
+    //    PersonFunction calculatedPersonFunction = Optional.ofNullable(department.getResponsible())
+      //          .map(p -> p.getPersonId()).map( pId -> pId.equals(person.getId()) && isStaff(person.getPersonfunction()))
         PersonResource personResource = new PersonResource();
         personResource.setId(person.getId());
         personResource.setEmail(person.getEmail());
@@ -16,7 +46,7 @@ public class PersonPresenter {
         personResource.setPhone(person.getPhone());
         personResource.setSkype(person.getSkype());
         personResource.setPhotoFileId(person.getPhotoFileId());
-        personResource.setDepartment(getDepartment(person.getDepartmentId(), organisation));
+        personResource.setDepartment(department.map(d -> new ShortDepartment(d.getId(), d.getName())) .orElse(null));
         personResource.setValid(person.isRegistered());
         personResource.setPersonfunction(person.getPersonfunction());
         personResource.setStatus(person.getStatus());

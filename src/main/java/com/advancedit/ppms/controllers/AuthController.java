@@ -1,7 +1,10 @@
 package com.advancedit.ppms.controllers;
 
 import com.advancedit.ppms.configs.JwtTokenProvider;
-import com.advancedit.ppms.controllers.beans.*;
+import com.advancedit.ppms.controllers.beans.AuthResponseBean;
+import com.advancedit.ppms.controllers.beans.OrganisationShortBean;
+import com.advancedit.ppms.controllers.beans.RegisterUserBean;
+import com.advancedit.ppms.controllers.beans.ValidationTokenResponseBean;
 import com.advancedit.ppms.exceptions.ErrorCode;
 import com.advancedit.ppms.exceptions.PPMSException;
 import com.advancedit.ppms.models.organisation.Organisation;
@@ -11,7 +14,6 @@ import com.advancedit.ppms.models.user.Role;
 import com.advancedit.ppms.models.user.User;
 import com.advancedit.ppms.models.user.VerificationToken;
 import com.advancedit.ppms.service.*;
-import com.advancedit.ppms.utils.LoggedUserInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -21,7 +23,9 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.*;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static com.advancedit.ppms.models.person.PersonFunction.*;
@@ -66,7 +70,7 @@ public class AuthController {
 			if (user.getDefaultTenantId() != 0) {
 				Optional<Role> role = Optional.of(personService.getPersonByEmail(user.getDefaultTenantId(),
 						user.getEmail()))
-						.map(this::getRoleFromPersonFunction);
+						.map(p -> getRoleFromPersonFunction(user.getDefaultTenantId(), p));
 				role.map(roles::add);
 			}
 			String token = jwtTokenProvider.createToken(user.getEmail(), roles, user.getDefaultTenantId());
@@ -133,18 +137,24 @@ public class AuthController {
 		return ResponseEntity.noContent().build();
 	}
 
-	private Role getRoleFromPersonFunction(Person person){
-		if (STAFF.equals(person.getPersonfunction())){
-			return  Role.STAFF;
+	private Role getRoleFromPersonFunction(long tenantId, Person person){
+
+		if(PersonFunction.ADMIN_CREATOR.equals(person.getPersonfunction())){
+			return  Role.ADMIN_CREATOR;
 		}
+
 		if (STUDENT.equals(person.getPersonfunction())){
 			return  Role.STUDENT;
 		}
-		if(MODEL_LEADER.equals(person.getPersonfunction())){
-			return  Role.MODULE_LEADER;
-		}
-		if(PersonFunction.ADMIN_CREATOR.equals(person.getPersonfunction())){
-			return  Role.ADMIN_CREATOR;
+
+		if (STAFF.equals(person.getPersonfunction()) || MODEL_LEADER.equals(person.getPersonfunction())){
+			boolean isModelLeader = organisationService.getOrganisationByTenantId(tenantId)
+					.map(Organisation::getDepartments)
+					.flatMap(deps -> deps.stream().filter( d-> d.getId().equals(person.getDepartmentId())).findFirst())
+					.flatMap(d -> Optional.ofNullable(d.getResponsible()))
+					.map(sp -> sp.getPersonId().equals(person.getId()))
+					.orElse(false);
+			return isModelLeader   ? Role.MODULE_LEADER:   Role.STAFF ;
 		}
 		return null;
 	}

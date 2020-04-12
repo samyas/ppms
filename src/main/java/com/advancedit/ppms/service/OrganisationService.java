@@ -101,7 +101,7 @@ public class OrganisationService {
 	}
 
 	public String updateDepartment(long tenantId, String organisationId, String departmentId, Department department) {
-		getOrganisationByIdAndTenantId(tenantId, organisationId);
+		Organisation organisation = getOrganisationByIdAndTenantId(tenantId, organisationId);
 		department.setId(departmentId);
 		organisationRepository.updateDepartment(tenantId, organisationId, department);
 		return departmentId;

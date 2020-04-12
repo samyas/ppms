@@ -74,7 +74,11 @@ public class ProjectRepositoryImpl implements ProjectCustomRepository {
 	public String updateProjectNameAndDescriptionAndKeywords(long tenantId, String projectId, Project project){
 		Criteria findProjectCriteria = Criteria.where("projectId").is(projectId).and("tenantId").is(tenantId);
 		final Update update = new Update().set("name", project.getName()).set("shortDescription", project.getShortDescription())
-				.set("description", project.getDescription()).set("keywords", project.getKeywords());
+				.set("description", project.getDescription())
+				.set("keywords", project.getKeywords())
+				.set("startDate", project.getStartDate())
+				.set("endDate", project.getEndDate())
+				;
 		final UpdateResult wr = mongoTemplate.updateFirst(new BasicQuery(findProjectCriteria.getCriteriaObject()), update, Project.class);
 		if (wr.getModifiedCount() != 1){
 			throw new PPMSException("Unable to update project");
@@ -173,6 +177,8 @@ public class ProjectRepositoryImpl implements ProjectCustomRepository {
 		final Update update = new Update().set("goals.$[i].name", goal.getName())
 				.set("goals.$[i].shortDescription", goal.getShortDescription())
 				.set("goals.$[i].description", goal.getDescription())
+				.set("goals.$[i].startDate", goal.getStartDate())
+				.set("goals.$[i].endDate", goal.getEndDate())
 				.filterArray(Criteria.where("i._id").is(new ObjectId(goalId)));
 		final UpdateResult wr = mongoTemplate.updateFirst(new BasicQuery(findProjectCriteria.getCriteriaObject()),
 				update, Project.class);
@@ -272,6 +278,8 @@ public class ProjectRepositoryImpl implements ProjectCustomRepository {
 				,new Document().append("$set", new Document().append("goals.$[i].tasks.$[j].name", task.getName())
 						.append("goals.$[i].tasks.$[j].shortDescription", task.getShortDescription())
 						.append("goals.$[i].tasks.$[j].description", task.getDescription())
+						.append("goals.$[i].tasks.$[j].startDate", task.getStartDate())
+						.append("goals.$[i].tasks.$[j].endDate", task.getEndDate())
 				),
 				new UpdateOptions().arrayFilters(Arrays.asList(
 						Filters.eq("i._id", new ObjectId(goalId)),

@@ -10,7 +10,11 @@ import com.advancedit.ppms.exceptions.ErrorCode;
 import com.advancedit.ppms.exceptions.PPMSException;
 import com.advancedit.ppms.models.organisation.Organisation;
 import com.advancedit.ppms.models.user.Role;
+import com.advancedit.ppms.models.user.VerificationToken;
+import com.advancedit.ppms.service.EmailService;
 import com.advancedit.ppms.service.OrganisationService;
+import com.advancedit.ppms.service.PersonService;
+import com.advancedit.ppms.service.VerificationTokenService;
 import com.advancedit.ppms.utils.LoggedUserInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -24,7 +28,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.advancedit.ppms.models.person.Person;
 import com.advancedit.ppms.models.person.PersonFunction;
-import com.advancedit.ppms.service.PersonService;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -39,6 +42,13 @@ public class PersonController {
 
     @Autowired
     OrganisationService organisationService;
+
+    @Autowired
+    private VerificationTokenService verificationTokenService;
+
+    @Autowired
+    private EmailService emailService;
+
 
     @RequestMapping(method=RequestMethod.GET, value="/api/persons")
     public List<Person> all() {
@@ -66,15 +76,17 @@ public class PersonController {
     public String save(@RequestBody Person person, HttpServletRequest request) throws MalformedURLException {
         hasAnyRole(Role.SUPER_ADMIN, Role.ADMIN_CREATOR, Role.MODULE_LEADER);
 
-        return personService.addPerson(getCurrentTenantId(), person, request.getHeader("Origin")).getId();
+        Person p = personService.addPerson(getCurrentTenantId(), person);
+
+
+        sendJoinInvitation(getCurrentTenantId(), p, organisationService.getOrganisationByTenantId(getCurrentTenantId()).get()
+                , request.getHeader("Origin"));
+        return p.getId();
     }
     
     @RequestMapping(method=RequestMethod.PUT, value="/api/persons/{id}")
     public String update(@PathVariable String id, @RequestBody Person person) {
-    	person.setId(id);
-    	if (! isHasAnyRole(Role.SUPER_ADMIN, Role.ADMIN_CREATOR)){
-    	    person.setRegistered(false);
-        }
+        hasAnyRole(Role.SUPER_ADMIN, Role.ADMIN_CREATOR, Role.MODULE_LEADER);
     	return personService.updatePerson(getCurrentTenantId(), person).getId();
     }
 
@@ -108,6 +120,11 @@ public class PersonController {
     public void delete(@PathVariable String id) {
         hasAnyRole(Role.SUPER_ADMIN, Role.ADMIN_CREATOR);
          personService.delete(getCurrentTenantId(), id);
+    }
+
+    public void sendJoinInvitation(long tenantId, Person person, Organisation organisation, String domain){
+        VerificationToken verificationToken = verificationTokenService.generateValidationEmailToken(tenantId, person.getEmail());
+        emailService.sendJoinRequestForPerson(person, organisation, verificationToken, domain);
     }
 
 }
