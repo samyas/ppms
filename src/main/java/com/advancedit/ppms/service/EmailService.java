@@ -45,7 +45,7 @@ public class EmailService {
 		data.put("receiverFirstName", receiver.getFirstName());
 		data.put("receiverLastName", receiver.getLastName());
 		data.put("moduleName", organisation.getDepartments().stream()
-				 .filter( d -> d.getId().equals(receiver.getDepartmentId()))
+				 .filter( d -> d.getDepartmentId().equals(receiver.getDepartmentId()))
 				.findFirst().map(Department::getName).orElse(null));
 		data.put("organisationName", organisation.getName());
 		data.put("domain", domain);
@@ -54,7 +54,7 @@ public class EmailService {
 		emailBean.setMessage(generateHtmlContent("mail-template", data));
 
 		emailBean.setFrom("abdessalemsamet@gmail.com");
-    	emailBean.setTo(asList("g.fakhfakh@gmail.com"));
+    	emailBean.setTo(asList("abdessalemsamet@gmail.com"));
     	emailBean.setSubject("Join 3C");
     	emailClient.send(emailBean);
     }
@@ -72,7 +72,7 @@ public class EmailService {
 		emailBean.setMessage(generateHtmlContent("confirm-mail-template", data));
 
 		emailBean.setFrom("abdessalemsamet@gmail.com");
-		emailBean.setTo(asList( "g.fakhfakh@gmail.com"));
+		emailBean.setTo(asList( "abdessalemsamet@gmail.com"));
 		emailBean.setSubject("Welcome to 3C");
 		emailClient.send(emailBean);
 	}
@@ -91,7 +91,7 @@ public class EmailService {
 		emailBean.setMessage(generateHtmlContent("reset-password-template", data));
 
 		emailBean.setFrom("abdessalemsamet@gmail.com");
-		emailBean.setTo(asList( "g.fakhfakh@gmail.com"));
+		emailBean.setTo(asList( "abdessalemsamet@gmail.com"));
 		emailBean.setSubject("3C : Reset Password");
 		emailClient.send(emailBean);
 	}

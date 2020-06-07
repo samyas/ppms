@@ -50,15 +50,9 @@ public class PersonService {
     	return personRepository.findByTenantId(tenantId);
     }
     
-	public Page<Person> getPagedListPerson(long tenantId, int page, int size, String departmentId, PersonFunction function, String status, String name) {
+	public Page<Person> getPagedListPerson(long tenantId, int page, int size, String departmentId, List<PersonFunction> functions, String status, String name) {
 		Pageable pageableRequest =  PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "name"));
-		Page<Person> persons = null;
-		if (StringUtils.isEmpty(name)){
-			persons = personRepository.findByTenantIdAndPersonFunctionAndStatus(tenantId, function, status, departmentId, pageableRequest);
-		}else{
-		    persons = personRepository.findByAllCriteria(tenantId, function, status, name, departmentId, pageableRequest);
-		}
-		return persons;
+		return personRepository.findByTenantIdAndPersonFunctionAndStatus(tenantId, functions, name, status, departmentId, pageableRequest);
 	}
 
     public Person getPersonByEmail(long tenantId, String email){
@@ -90,7 +84,7 @@ public class PersonService {
        String departmentId = Optional.ofNullable(person.getDepartmentId())
 			   .orElseThrow(() -> new PPMSException("Department is mandatory"));
 
-		Department department =organisation.getDepartments().stream().filter( d -> d.getId().equals(departmentId))
+		Department department =organisation.getDepartments().stream().filter( d -> d.getDepartmentId().equals(departmentId))
 				.findFirst().orElseThrow(() -> new PPMSException("Department was not found"));
 
 		person.setId(null);
@@ -113,7 +107,7 @@ public class PersonService {
 				.orElseThrow(() -> new PPMSException("Department is mandatory"));
 
 		Organisation organisation = organisationRepository.findByTenantId(tenantId);
-		Department department = organisation.getDepartments().stream().filter(d -> d.getId().equals(departmentId))
+		Department department = organisation.getDepartments().stream().filter(d -> d.getDepartmentId().equals(departmentId))
 				.findFirst().orElseThrow(() -> new PPMSException("Department was not found"));
 
 		if (MODEL_LEADER.equals(updatePerson.getPersonfunction()) && (department.getResponsible() == null || !department.getResponsible().getPersonId().equals(updatePerson.getId()))) {

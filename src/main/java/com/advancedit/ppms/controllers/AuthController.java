@@ -1,10 +1,8 @@
 package com.advancedit.ppms.controllers;
 
 import com.advancedit.ppms.configs.JwtTokenProvider;
-import com.advancedit.ppms.controllers.beans.AuthResponseBean;
-import com.advancedit.ppms.controllers.beans.OrganisationShortBean;
-import com.advancedit.ppms.controllers.beans.RegisterUserBean;
-import com.advancedit.ppms.controllers.beans.ValidationTokenResponseBean;
+import com.advancedit.ppms.controllers.beans.*;
+import com.advancedit.ppms.controllers.presenter.UserPresenter;
 import com.advancedit.ppms.exceptions.ErrorCode;
 import com.advancedit.ppms.exceptions.PPMSException;
 import com.advancedit.ppms.models.organisation.Organisation;
@@ -67,13 +65,16 @@ public class AuthController {
 			if (!user.isEmailIsValid()) throw new PPMSException("Your email is not validated, please check your mailbox");
 			//if (!user.isEnabled()) throw new PPMSException("Your account is not enabled yet by administrator");
 			Set<Role> roles = user.getRoles();
+			String moduleId = null;
 			if (user.getDefaultTenantId() != 0) {
-				Optional<Role> role = Optional.of(personService.getPersonByEmail(user.getDefaultTenantId(),
-						user.getEmail()))
+				Person person = personService.getPersonByEmail(user.getDefaultTenantId(),
+						user.getEmail());
+				moduleId = person.getDepartmentId();
+				Optional<Role> role = Optional.of(person)
 						.map(p -> getRoleFromPersonFunction(user.getDefaultTenantId(), p));
 				role.map(roles::add);
 			}
-			String token = jwtTokenProvider.createToken(user.getEmail(), roles, user.getDefaultTenantId());
+			String token = jwtTokenProvider.createToken(user.getEmail(), roles, moduleId, user.getDefaultTenantId());
 			AuthResponseBean authResponseBean = new AuthResponseBean();
 			authResponseBean.setToken(token);
 			authResponseBean.setEnabled(user.isEnabled());
@@ -150,7 +151,7 @@ public class AuthController {
 		if (STAFF.equals(person.getPersonfunction()) || MODEL_LEADER.equals(person.getPersonfunction())){
 			boolean isModelLeader = organisationService.getOrganisationByTenantId(tenantId)
 					.map(Organisation::getDepartments)
-					.flatMap(deps -> deps.stream().filter( d-> d.getId().equals(person.getDepartmentId())).findFirst())
+					.flatMap(deps -> deps.stream().filter( d-> d.getDepartmentId().equals(person.getDepartmentId())).findFirst())
 					.flatMap(d -> Optional.ofNullable(d.getResponsible()))
 					.map(sp -> sp.getPersonId().equals(person.getId()))
 					.orElse(false);
@@ -238,8 +239,9 @@ public class AuthController {
 	}
 
 	@RequestMapping(method= RequestMethod.GET, value="/info")
-	public User getUserInfo() {
-		return userService.getUserByEmail(getLoggedUserInfo().getEmail());
+	public UserResource getUserInfo() {
+		return UserPresenter.toResource(userService.getUserByEmail(getLoggedUserInfo().getEmail())
+		, personService.getPersonByEmail(getCurrentTenantId(), getLoggedUserInfo().getEmail()));
 	}
 
 	@RequestMapping(method=RequestMethod.GET, value="/organisations")
@@ -257,7 +259,7 @@ public class AuthController {
 	public AuthResponseBean linkToOrganisation(@RequestParam("id") long id) {
 		hasAnyRole(SUPER_ADMIN);
 		User user = userService.linkToAnOrganisation(id, getLoggedUserInfo());
-		String token = jwtTokenProvider.createToken(user.getEmail(), user.getRoles(), user.getDefaultTenantId());
+		String token = jwtTokenProvider.createToken(user.getEmail(), user.getRoles(), null, user.getDefaultTenantId());
 		AuthResponseBean authResponseBean = new AuthResponseBean();
 		authResponseBean.setToken(token);
 		//authResponseBean.setNeedToSelect(true);

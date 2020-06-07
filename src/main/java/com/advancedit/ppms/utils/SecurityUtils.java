@@ -38,7 +38,7 @@ public class SecurityUtils {
     public static void hasAnyRole(Role... roles){
         if (!isHasAnyRole(roles))  throw new AccessDeniedException(
                 String.format("one of the roles %s is needed", Stream.of(roles)
-                        .map(Role::name).collect(Collectors.joining())));
+                        .map(Role::name).collect(Collectors.joining(", "))));
     }
 
     public static boolean isHasRole(Role role){

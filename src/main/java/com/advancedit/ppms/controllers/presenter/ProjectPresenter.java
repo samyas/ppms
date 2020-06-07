@@ -4,6 +4,7 @@ import com.advancedit.ppms.controllers.beans.ProjectResource;
 import com.advancedit.ppms.models.organisation.Organisation;
 import com.advancedit.ppms.models.organisation.ShortDepartment;
 import com.advancedit.ppms.models.person.ShortPerson;
+import com.advancedit.ppms.models.project.Member;
 import com.advancedit.ppms.models.project.Project;
 
 import java.util.ArrayList;
@@ -19,7 +20,8 @@ public class ProjectPresenter {
         projectResource.setShortDescription(project.getShortDescription());
         projectResource.setDescription(project.getDescription());
         projectResource.setType(project.getType());
-        projectResource.setStatus(project.getStatus());
+        projectResource.setStatus(project.getStatus().getLabel());
+        projectResource.setStatusCode(project.getStatus().name());
         projectResource.setCategory(project.getCategory());
         projectResource.setSectors(project.getSectors());
         projectResource.setKeywords(project.getKeywords());
@@ -27,10 +29,7 @@ public class ProjectPresenter {
         projectResource.setEndDate(project.getEndDate());
         projectResource.setApplies(project.getApplies());
         projectResource.setTeam(project.getTeam());
-        projectResource.setSupervisor(project.getSupervisor());
-        projectResource.setExaminator(project.getExaminator());
-        projectResource.setSupervisors(project.getSupervisors());
-        projectResource.setExaminators(project.getExaminators());
+        projectResource.setMembers(project.getMembers());
         projectResource.setCreator(project.getCreator());
         projectResource.setAssignedTo(project.getAssignedTo());
         projectResource.setDepartment(getDepartment(project.getDepartmentId(), organisation));
@@ -51,14 +50,15 @@ public class ProjectPresenter {
     private static boolean isBelongToProjectTeam(String personId, Project project){
         List<String> projectPersonIds = new ArrayList<>();
         Optional.ofNullable(project.getCreator()).map(ShortPerson::getPersonId).ifPresent(projectPersonIds::add);
-        project.getSupervisors().stream().map(ShortPerson::getPersonId).forEach(projectPersonIds::add);
-        project.getExaminators().stream().map(ShortPerson::getPersonId).forEach(projectPersonIds::add);
-        project.getTeam().stream().map(ShortPerson::getPersonId).forEach(projectPersonIds::add);
+    //    project.getSupervisors().stream().map(ShortPerson::getPersonId).forEach(projectPersonIds::add);
+    //    project.getExaminators().stream().map(ShortPerson::getPersonId).forEach(projectPersonIds::add);
+        project.getTeam().stream().map(Member::getPersonId).forEach(projectPersonIds::add);
+        project.getMembers().stream().map(Member::getPersonId).forEach(projectPersonIds::add);
         return projectPersonIds.contains(personId);
     }
 
     private static ShortDepartment getDepartment(String departmentId, Organisation organisation){
-       return organisation.getDepartments().stream().filter(d -> d.getId().equals(departmentId)).findFirst()
-               .map(d -> new ShortDepartment(d.getId(), d.getName())) .orElse(null);
+       return organisation.getDepartments().stream().filter(d -> d.getDepartmentId().equals(departmentId)).findFirst()
+               .map(d -> new ShortDepartment(d.getDepartmentId(), d.getName())) .orElse(null);
     }
 }

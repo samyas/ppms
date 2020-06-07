@@ -33,6 +33,8 @@ public enum ErrorCode {
 	PROJECT_ID_NOT_FOUND("project.id.not.found"),
 	PROJECT_ALREADY_EXIST("project.name.nameExist"),
 
+	PROJECT_ASSIGN_NOT_ALLOWED("project.assign.not.allowed"),
+
 	TASK_ID_NOT_FOUND("task.id.not.found"),
 
 

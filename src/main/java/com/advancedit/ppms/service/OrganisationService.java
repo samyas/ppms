@@ -2,14 +2,11 @@ package com.advancedit.ppms.service;
 
 import com.advancedit.ppms.exceptions.ErrorCode;
 import com.advancedit.ppms.exceptions.PPMSException;
-import com.advancedit.ppms.models.organisation.Department;
-import com.advancedit.ppms.models.organisation.Organisation;
-import com.advancedit.ppms.models.organisation.Sector;
+import com.advancedit.ppms.models.organisation.*;
 import com.advancedit.ppms.models.person.ShortPerson;
 import com.advancedit.ppms.repositories.FileStorageRepository;
 import com.advancedit.ppms.repositories.OrganisationRepository;
 import com.advancedit.ppms.repositories.PersonRepository;
-import org.apache.commons.lang3.StringUtils;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -90,21 +87,38 @@ public class OrganisationService {
 						String.format("Person id not found '%s'.", personId)));
 
 	}
+
+	public Organisation getOrganisationByIdAndTenantId(long tenantId , String id){
+		return organisationRepository.findById(id).filter(o -> o.getTenantId() == tenantId).orElseThrow(() ->
+				new PPMSException(ErrorCode.ORGANISATION_ID_NOT_FOUND, String.format("Organisation id not found '%s'.", id)));
+
+	}
+
+	/*************************** DEPARTMENTS *************************************/
 	public String addDepartment(long tenantId, String organisationId, Department department) {
 		//getOrganisationByIdAndTenantId(tenantId, organisationId);
-		department.setId(new ObjectId().toHexString());
+		department.setDepartmentId(new ObjectId().toHexString());
 	/*	Optional<ShortPerson> responsable = Optional.ofNullable(department.getResponsible()).map(ShortPerson::getPersonId)
 				.filter(StringUtils::isNotBlank)
 				.map(this::getShortPerson);
 		responsable.ifPresent(department::setResponsible);*/
-		return organisationRepository.addDepartment(tenantId, organisationId, department).getId();
+		return organisationRepository.addDepartment(tenantId, organisationId, department).getDepartmentId();
 	}
 
 	public String updateDepartment(long tenantId, String organisationId, String departmentId, Department department) {
-		Organisation organisation = getOrganisationByIdAndTenantId(tenantId, organisationId);
-		department.setId(departmentId);
-		organisationRepository.updateDepartment(tenantId, organisationId, department);
+		Department departmentToUpdate = getDepartment(tenantId, organisationId, departmentId);
+		departmentToUpdate.setName(department.getName());
+		departmentToUpdate.setMaxTeamNbr(department.getMaxTeamNbr());
+		departmentToUpdate.setDescription(department.getDescription());
+		departmentToUpdate.setResponsible(department.getResponsible());
+		departmentToUpdate.setLongDescription(department.getLongDescription());
+		organisationRepository.updateDepartment(tenantId, organisationId, departmentToUpdate);
 		return departmentId;
+	}
+
+	public Department getDepartment(long tenantId,  String departmentId) {
+		return organisationRepository.getDepartment(tenantId, departmentId)
+				.orElseThrow(() -> new IllegalStateException(String.format("Department [%s] not found", departmentId)));
 	}
 
 	public Department getDepartment(long tenantId, String organisationId, String departmentId) {
@@ -117,6 +131,52 @@ public class OrganisationService {
 		 organisationRepository.deleteDepartment(tenantId, organisationId, departmentId);
 
 	}
+
+
+	/******************************* TERMS *************************************/
+	public Optional<SupervisorTerm> getTerm(long tenantId, String departmentId, String termId) {
+		return organisationRepository.getTerm(tenantId, departmentId, termId);
+	}
+
+	public String addTerm(long tenantId, String organisationId, String departmentId, SupervisorTerm term) {
+		term.setTermId(new ObjectId().toHexString());
+		return organisationRepository.addTerm(tenantId, organisationId, departmentId, term).getTermId();
+	}
+
+	public String updateTerm(long tenantId, String organisationId, String departmentId, String termId,  SupervisorTerm term) {
+		term.setTermId(termId);
+		organisationRepository.updateTerm(tenantId, organisationId, departmentId, term);
+		return termId;
+	}
+
+	public void deleteTerm(long tenantId, String organisationId, String departmentId, String termId) {
+		organisationRepository.deleteTerm(tenantId, organisationId, departmentId, termId);
+	}
+
+	/******************************* ACTIONS *************************************/
+
+	public String addAction(long tenantId, String organisationId, String departmentId, Action action) {
+		action.setActionId(new ObjectId().toHexString());
+		return organisationRepository.addAction(tenantId, organisationId, departmentId, action).getActionId();
+	}
+
+	public Action getAction(long tenantId, String organisationId, String departmentId, String actionId) {
+		return organisationRepository.getDepartment(tenantId, organisationId, departmentId)
+				.flatMap(d -> d.getActions().stream().filter(a -> a.getActionId().equals(actionId)).findFirst())
+				.orElseThrow(() -> new IllegalStateException(String.format("Action [%s] not found", departmentId)));
+	}
+
+	public String updateAction(long tenantId, String organisationId, String departmentId, String actionId,  Action action) {
+		action.setActionId(actionId);
+		organisationRepository.updateAction(tenantId, organisationId, departmentId, action);
+		return actionId;
+	}
+
+	public void deleteAction(long tenantId, String organisationId, String departmentId, String actionId) {
+		organisationRepository.deleteAction(tenantId, organisationId, departmentId, actionId);
+	}
+
+	/*************************** SECTORS *************************************/
 
 
 	public String addSector(long tenantId, String organisationId, String departmentId, Sector sector) {
@@ -144,10 +204,6 @@ public class OrganisationService {
 		
 	}
 
-	public Organisation getOrganisationByIdAndTenantId(long tenantId , String id){
-		return organisationRepository.findById(id).filter(o -> o.getTenantId() == tenantId).orElseThrow(() ->
-				new PPMSException(ErrorCode.ORGANISATION_ID_NOT_FOUND, String.format("Organisation id not found '%s'.", id)));
 
-	}
    
 }

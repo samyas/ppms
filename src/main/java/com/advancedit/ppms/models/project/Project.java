@@ -5,7 +5,6 @@ import java.util.Date;
 import java.util.List;
 
 import com.advancedit.ppms.models.files.FileDescriptor;
-import com.advancedit.ppms.models.organisation.ShortDepartment;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
@@ -25,7 +24,7 @@ public class Project {
 	private String shortDescription;
 	private String description;
 	private String type;
-	private String status;
+	private ProjectStatus status;
 	private String category;
 	private List<String> sectors = new ArrayList<>();
 	private List<String> keywords = new ArrayList<>();
@@ -34,12 +33,8 @@ public class Project {
 	@DateTimeFormat(style = "M-")
 	private Date endDate;
 	private List<Apply> applies = new ArrayList<>();
-	private String managerPersonId;
-	private List<ShortPerson> team = new ArrayList<>();
-	private ShortPerson supervisor;
-    private ShortPerson examinator;
-    private List<ShortPerson> supervisors = new ArrayList<>();
-    private List<ShortPerson> examinators = new ArrayList<>();
+	private List<Member> team = new ArrayList<>();
+	private List<Member> members = new ArrayList<>();
     private ShortPerson creator;
     private List<ShortPerson> assignedTo = new ArrayList<>();
 	private String departmentId;
@@ -50,4 +45,11 @@ public class Project {
 	private List<String> organisationsId = new ArrayList<>();
 	private List<FileDescriptor> attachments = new ArrayList<>();
 	private long tenantId;
+
+	//TODO to remove
+	private ShortPerson supervisor;
+	private ShortPerson examinator;
+	private List<ShortPerson> supervisors = new ArrayList<>();
+	private List<ShortPerson> examinators = new ArrayList<>();
+	private String managerPersonId;
 }

@@ -9,16 +9,10 @@ import javax.servlet.http.HttpServletRequest;
 import com.advancedit.ppms.exceptions.ErrorCode;
 import com.advancedit.ppms.exceptions.PPMSException;
 import com.advancedit.ppms.utils.LoggedUserInfo;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import com.advancedit.ppms.models.user.Role;
-import com.advancedit.ppms.services.CustomUserDetailsService;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
@@ -53,10 +47,11 @@ public class JwtTokenProvider {
             .compact();
     }*/
 
-    public String createToken(String email, Set<Role> roles, long tenantId) {
+    public String createToken(String email, Set<Role> roles, String moduleId, long tenantId) {
         Claims claims = Jwts.claims().setSubject(email);
         if (tenantId > 0) claims = claims.setIssuer(Long.toString(tenantId));
         claims.put("roles", roles);
+        claims.put("moduleId", moduleId);
         Date now = new Date();
         Date validity = new Date(now.getTime() + validityInMilliseconds);
         return Jwts.builder()//
@@ -72,8 +67,10 @@ public class JwtTokenProvider {
     public LoggedUserInfo getUserInfoFromToken(String token) {
         Claims body = Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token).getBody();
         List<String> roles = (List<String>)body.getOrDefault("roles", Collections.emptyList());
+        String moduleId = (String)body.get("moduleId");
         LoggedUserInfo userInfo = new LoggedUserInfo();
         userInfo.setEmail(body.getSubject());
+        userInfo.setModuleId(moduleId);
         Optional.ofNullable(body.getIssuer())
         .ifPresent(s -> userInfo.setTenantId(Long.parseLong(s)));
         userInfo.setRoles(roles.stream().map(Role::valueOf).collect(Collectors.toSet()));

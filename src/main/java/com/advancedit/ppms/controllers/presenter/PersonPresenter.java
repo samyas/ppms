@@ -1,7 +1,6 @@
 package com.advancedit.ppms.controllers.presenter;
 
 import com.advancedit.ppms.controllers.beans.PersonResource;
-import com.advancedit.ppms.exceptions.PPMSException;
 import com.advancedit.ppms.models.organisation.Department;
 import com.advancedit.ppms.models.organisation.Organisation;
 import com.advancedit.ppms.models.organisation.ShortDepartment;
@@ -10,7 +9,6 @@ import com.advancedit.ppms.models.person.PersonFunction;
 import com.advancedit.ppms.models.person.ShortPerson;
 
 import java.util.Optional;
-import java.util.function.Function;
 
 import static com.advancedit.ppms.models.person.PersonFunction.isStaff;
 
@@ -19,7 +17,7 @@ public class PersonPresenter {
 
     public static PersonResource toResource(Person person, Organisation organisation){
        Optional<Department> department = organisation.getDepartments()
-               .stream().filter(d -> d.getId().equals(person.getDepartmentId())).findFirst();
+               .stream().filter(d -> d.getDepartmentId().equals(person.getDepartmentId())).findFirst();
 
         if (department.isPresent() && isStaff(person.getPersonfunction())){
             Optional.ofNullable(department.get().getResponsible())
@@ -46,7 +44,7 @@ public class PersonPresenter {
         personResource.setPhone(person.getPhone());
         personResource.setSkype(person.getSkype());
         personResource.setPhotoFileId(person.getPhotoFileId());
-        personResource.setDepartment(department.map(d -> new ShortDepartment(d.getId(), d.getName())) .orElse(null));
+        personResource.setDepartment(department.map(d -> new ShortDepartment(d.getDepartmentId(), d.getName())) .orElse(null));
         personResource.setValid(person.isRegistered());
         personResource.setPersonfunction(person.getPersonfunction());
         personResource.setStatus(person.getStatus());
@@ -67,7 +65,7 @@ public class PersonPresenter {
 
 
     private static ShortDepartment getDepartment(String departmentId, Organisation organisation){
-       return organisation.getDepartments().stream().filter(d -> d.getId().equals(departmentId)).findFirst()
-               .map(d -> new ShortDepartment(d.getId(), d.getName())) .orElse(null);
+       return organisation.getDepartments().stream().filter(d -> d.getDepartmentId().equals(departmentId)).findFirst()
+               .map(d -> new ShortDepartment(d.getDepartmentId(), d.getName())) .orElse(null);
     }
 }

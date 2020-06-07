@@ -2,6 +2,7 @@ package com.advancedit.ppms.controllers;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -33,6 +34,7 @@ import javax.servlet.http.HttpServletRequest;
 
 import static com.advancedit.ppms.controllers.presenter.PersonPresenter.toResource;
 import static com.advancedit.ppms.utils.SecurityUtils.*;
+import static java.util.Arrays.asList;
 
 @RestController
 public class PersonController {
@@ -58,12 +60,21 @@ public class PersonController {
     @RequestMapping(method=RequestMethod.GET, value="/api/persons/paged")
     public Page<PersonResource> getPagedPerson(@RequestParam("page") int page, @RequestParam("size") int size,
                                                @RequestParam(value = "function", required = false) PersonFunction personFunction,
+                                               @RequestParam(value = "student", required = false) Boolean isStudent,
                                                @RequestParam(value = "status", required = false) String status,
                                                @RequestParam(value = "name", required = false) String name) {
         hasAnyRole(Role.SUPER_ADMIN, Role.ADMIN_CREATOR, Role.MODULE_LEADER, Role.STAFF);
         LoggedUserInfo loggedUserInfo = getLoggedUserInfo();
-        Person person = personService.getPersonByEmail(loggedUserInfo.getTenantId(), loggedUserInfo.getEmail());
-        Page<Person> pagedListPerson = personService.getPagedListPerson(getCurrentTenantId(), page, size, person.getDepartmentId(), personFunction,
+        List<PersonFunction> functions = new ArrayList<>();
+        if (isStudent != null){
+            if (Boolean.TRUE.equals(isStudent)){
+                functions.add(PersonFunction.STUDENT);
+            }else{
+                functions.addAll(asList(PersonFunction.STAFF, PersonFunction.MODEL_LEADER));
+            }
+        }
+        if (personFunction != null) functions.add(personFunction);
+        Page<Person> pagedListPerson = personService.getPagedListPerson(getCurrentTenantId(), page, size, loggedUserInfo.getModuleId(), functions,
                 status, name);
         Organisation organisation = organisationService.getOrganisationByTenantId(loggedUserInfo.getTenantId())
                 .orElseThrow(() -> new PPMSException(ErrorCode.ORGANISATION_ID_NOT_FOUND, "Organisation was not found"));

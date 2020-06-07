@@ -6,20 +6,16 @@ import java.util.Optional;
 import com.advancedit.ppms.controllers.beans.OrganisationResource;
 import com.advancedit.ppms.exceptions.ErrorCode;
 import com.advancedit.ppms.exceptions.PPMSException;
+import com.advancedit.ppms.models.organisation.*;
+import com.advancedit.ppms.models.person.ShortPerson;
 import com.advancedit.ppms.models.user.Role;
 import com.advancedit.ppms.service.PersonService;
 import com.advancedit.ppms.utils.SecurityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import com.advancedit.ppms.models.organisation.Department;
-import com.advancedit.ppms.models.organisation.Organisation;
-import com.advancedit.ppms.models.organisation.Sector;
 import com.advancedit.ppms.repositories.OrganisationRepository;
 import com.advancedit.ppms.service.OrganisationService;
 
@@ -75,7 +71,7 @@ public class OrganisationController {
 
     }
     
-    //Department Management
+    /************************** Department Management *****************************************/
     @RequestMapping(method=RequestMethod.POST, value="/api/organisations/{organisationId}/departments")
     public String addDepartment(@PathVariable String organisationId, @RequestBody Department department) {
         hasAnyRole(Role.ADMIN_CREATOR, Role.SUPER_ADMIN);
@@ -98,7 +94,106 @@ public class OrganisationController {
         hasAnyRole(Role.ADMIN_CREATOR, Role.SUPER_ADMIN);
         organisationService.deleteDepartment(getCurrentTenantId(), organisationId, departmentId);
     }
-    
+
+    private boolean isDepartmentModelLeader(String currentUserEmail, long tenantId, String organisationId, String departmentId){
+        ShortPerson responsible = organisationService.getDepartment(tenantId, organisationId, departmentId).getResponsible();
+        return  (responsible != null && personService.getPersonById(tenantId, responsible.getPersonId()).getEmail().equals( currentUserEmail));
+
+    }
+
+    /************************** Terms Management *****************************************/
+
+    @RequestMapping(method=RequestMethod.GET, value="/api/organisations/{organisationId}/departments/{departmentId}/terms")
+    public List<SupervisorTerm> getTerms(@PathVariable String organisationId, @PathVariable String departmentId) {
+        hasAnyRole(Role.ADMIN_CREATOR, Role.SUPER_ADMIN, Role.MODULE_LEADER);
+        if (isHasRole(Role.MODULE_LEADER) && !isDepartmentModelLeader(getLoggedUserInfo().getEmail(), getCurrentTenantId(), organisationId, departmentId)){
+            throw new AccessDeniedException("Only Module leader of this module can perform this operation");
+        }
+        return organisationService.getDepartment(getCurrentTenantId(), organisationId, departmentId).getSupervisorTerms();
+    }
+
+    @RequestMapping(method=RequestMethod.POST, value="/api/organisations/{organisationId}/departments/{departmentId}/terms")
+    public String addTerm(@PathVariable String organisationId, @PathVariable String departmentId, @RequestBody SupervisorTerm term) {
+        hasAnyRole(Role.ADMIN_CREATOR, Role.SUPER_ADMIN, Role.MODULE_LEADER);
+        if (isHasRole(Role.MODULE_LEADER) && !isDepartmentModelLeader(getLoggedUserInfo().getEmail(), getCurrentTenantId(), organisationId, departmentId)){
+            throw new AccessDeniedException("Only Module leader of this module can perform this operation");
+        }
+        return organisationService.addTerm(getCurrentTenantId(), organisationId, departmentId, term);
+    }
+
+    @RequestMapping(method=RequestMethod.PUT, value="/api/organisations/{organisationId}/departments/{departmentId}/terms/{termId}")
+    public String updateTerm(@PathVariable String organisationId, @PathVariable String departmentId,  @PathVariable String termId, @RequestBody SupervisorTerm term) {
+        hasAnyRole(Role.ADMIN_CREATOR, Role.SUPER_ADMIN, Role.MODULE_LEADER);
+        if (isHasRole(Role.MODULE_LEADER) && !isDepartmentModelLeader(getLoggedUserInfo().getEmail(), getCurrentTenantId(), organisationId, departmentId)){
+            throw new AccessDeniedException("Only Module leader of this module can perform this operation");
+        }
+        return organisationService.updateTerm(getCurrentTenantId(),organisationId, departmentId, termId, term);
+    }
+
+    @RequestMapping(method=RequestMethod.DELETE, value="/api/organisations/{organisationId}/departments/{departmentId}/terms/{termId}")
+    public void deleteTerm(@PathVariable String organisationId, @PathVariable String departmentId,  @PathVariable String termId) {
+        hasAnyRole(Role.ADMIN_CREATOR, Role.SUPER_ADMIN, Role.MODULE_LEADER);
+        if (isHasRole(Role.MODULE_LEADER) && !isDepartmentModelLeader(getLoggedUserInfo().getEmail(), getCurrentTenantId(), organisationId, departmentId)){
+            throw new AccessDeniedException("Only Module leader of this module can perform this operation");
+        }
+        organisationService.deleteTerm(getCurrentTenantId(), organisationId, departmentId, termId);
+    }
+
+
+    /************************** Actions Management *****************************************/
+
+
+    @RequestMapping(method=RequestMethod.GET, value="/api/organisations/{organisationId}/departments/{departmentId}/actions")
+    public List<Action> getActions(@PathVariable String organisationId, @PathVariable String departmentId) {
+        hasAnyRole(Role.ADMIN_CREATOR, Role.SUPER_ADMIN, Role.MODULE_LEADER);
+        if (isHasRole(Role.MODULE_LEADER) && !isDepartmentModelLeader(getLoggedUserInfo().getEmail(), getCurrentTenantId(), organisationId, departmentId)){
+            throw new AccessDeniedException("Only Module leader of this module can perform this operation");
+        }
+        return organisationService.getDepartment(getCurrentTenantId(), organisationId, departmentId).getActions();
+    }
+
+    @RequestMapping(method=RequestMethod.POST, value="/api/organisations/{organisationId}/departments/{departmentId}/actions")
+    public String addAction(@PathVariable String organisationId, @PathVariable String departmentId,
+                            @RequestParam(value = "updateAllProject", required = false) Boolean updateAllProject,
+                            @RequestParam (value = "projectIds", required = false) List<String> projectIds,
+                            @RequestBody Action action) {
+        hasAnyRole(Role.ADMIN_CREATOR, Role.SUPER_ADMIN, Role.MODULE_LEADER);
+        if (isHasRole(Role.MODULE_LEADER) && !isDepartmentModelLeader(getLoggedUserInfo().getEmail(), getCurrentTenantId(), organisationId, departmentId)){
+            throw new AccessDeniedException("Only Module leader of this module can perform this operation");
+        }
+        return organisationService.addAction(getCurrentTenantId(), organisationId, departmentId, action);
+    }
+
+
+    @RequestMapping(method=RequestMethod.PUT, value="/api/organisations/{organisationId}/departments/{departmentId}/actions/{actionId}")
+    public String updateAction(@PathVariable String organisationId, @PathVariable String departmentId,  @PathVariable String actionId,
+                               @RequestParam(value = "updateAllProject", required = false) Boolean updateAllProject,
+                               @RequestParam (value = "projectIds", required = false) List<String> projectIds, @RequestBody Action action) {
+        hasAnyRole(Role.ADMIN_CREATOR, Role.SUPER_ADMIN, Role.MODULE_LEADER);
+        if (isHasRole(Role.MODULE_LEADER) && !isDepartmentModelLeader(getLoggedUserInfo().getEmail(), getCurrentTenantId(), organisationId, departmentId)){
+            throw new AccessDeniedException("Only Module leader of this module can perform this operation");
+        }
+        return organisationService.updateAction(getCurrentTenantId(),organisationId, departmentId, actionId, action);
+    }
+
+    @RequestMapping(method=RequestMethod.GET, value="/api/organisations/{organisationId}/departments/{departmentId}/actions/{actionId}")
+    public Action getAction(@PathVariable String organisationId, @PathVariable String departmentId, @PathVariable String actionId ) {
+        return organisationService.getAction(getCurrentTenantId(), organisationId, departmentId, actionId);
+    }
+
+    @RequestMapping(method=RequestMethod.DELETE, value="/api/organisations/{organisationId}/departments/{departmentId}/actions/{actionId}")
+    public void deleteAction(@PathVariable String organisationId, @PathVariable String departmentId,  @PathVariable String actionId,
+                            @RequestParam(value = "updateAllProject", required = false) Boolean updateAllProject,
+                             @RequestParam (value = "projectIds", required = false) List<String> projectIds) {
+        hasAnyRole(Role.ADMIN_CREATOR, Role.SUPER_ADMIN, Role.MODULE_LEADER);
+        if (isHasRole(Role.MODULE_LEADER) && !isDepartmentModelLeader(getLoggedUserInfo().getEmail(), getCurrentTenantId(), organisationId, departmentId)){
+            throw new AccessDeniedException("Only Module leader of this module can perform this operation");
+        }
+        organisationService.deleteAction(getCurrentTenantId(), organisationId, departmentId, actionId);
+    }
+
+
+
     //Sector Management
     @RequestMapping(method=RequestMethod.POST, value="/api/organisations/{organisationId}/departments/{departmentId}/sectors")
     public String addSector(@PathVariable String organisationId, @PathVariable String departmentId, @RequestBody Sector sector) {

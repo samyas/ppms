@@ -1,30 +1,14 @@
 package com.advancedit.ppms.service;
 
-import com.advancedit.ppms.controllers.beans.Apply;
-import com.advancedit.ppms.controllers.beans.Assignment;
-import com.advancedit.ppms.controllers.beans.Assignment.Action;
-import com.advancedit.ppms.exceptions.ErrorCode;
-import com.advancedit.ppms.exceptions.PPMSException;
 import com.advancedit.ppms.models.files.FileDescriptor;
-import com.advancedit.ppms.models.person.ShortPerson;
-import com.advancedit.ppms.models.project.*;
-import com.advancedit.ppms.repositories.FileStorageRepository;
 import com.advancedit.ppms.repositories.OrganisationRepository;
 import com.advancedit.ppms.repositories.PersonRepository;
 import com.advancedit.ppms.repositories.ProjectRepository;
 import com.advancedit.ppms.service.beans.AttachType;
-import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-import java.util.function.Supplier;
 
 import static java.util.Arrays.asList;
 

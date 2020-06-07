@@ -17,13 +17,21 @@ public interface ProjectCustomRepository {
 
     boolean existByProjectIdAndTenantId(String projectId, long tenantId);
 
-    void updateProjectStatus(long tenantId, String projectId, String status);
+    boolean updateProjectStatus(long tenantId, String projectId, ProjectStatus status);
 
     String updateProjectNameAndDescriptionAndKeywords(long tenantId, String projectId, Project project);
 
-    void assignPerson(long tenantId, String projectId, String key, ShortPerson shortPerson);
+    String getDepartmentId(long tenantId, String projectId);
 
-    void unAssignPerson(long tenantId, String projectId, String key, String personId);
+    Project getProjectWithoutGoals(long tenantId, String projectId);
+
+    ProjectStatus getProjectStatus(long tenantId, String projectId);
+
+    boolean assignPerson(long tenantId, String projectId, String key, Member member);
+
+    boolean unAssignPerson(long tenantId, String projectId, String key, String personId);
+
+    boolean sign(long tenantId, String projectId, String attribute, String personId);
 
     void addAttachment(long tenantId, String projectId, FileDescriptor fileDescriptor);
 
@@ -39,7 +47,7 @@ public interface ProjectCustomRepository {
 
     Goal addGoal(long tenantId, String projectId, Goal goal);
 
-	String updateGoalNameAndDescription(long tenantId, String projectId, String goalId, Goal goal);
+	String updateGoal(long tenantId, String projectId, String goalId, Goal goal);
 
     void deleteGoal(long tenantId, String projectId, String goalId);
 
@@ -53,9 +61,11 @@ public interface ProjectCustomRepository {
 
     void updateTaskStatus(long tenantId, String projectId, String goalId, String taskId, String status);
 
-    void assignPerson(long tenantId, String projectId,  String goalId, String taskId, ShortPerson shortPerson);
+    boolean assignPerson(long tenantId, String projectId,  String goalId, String taskId, ShortPerson shortPerson);
 
-    void unAssignPerson(long tenantId, String projectId, String goalId, String taskId, String personId);
+    boolean unAssignPerson(long tenantId, String projectId, String goalId, String taskId, String personId);
+
+
 
     void addAttachment(long tenantId, String projectId, String goalId, String taskId, FileDescriptor fileDescriptor);
 
@@ -66,4 +76,6 @@ public interface ProjectCustomRepository {
     String updateMessage(long tenantId, String projectId, String goalId, String taskId, String messageId, Message message);
 
     void deleteTask(long tenantId, String projectId, String goalId, String taskId);
+
+
 }

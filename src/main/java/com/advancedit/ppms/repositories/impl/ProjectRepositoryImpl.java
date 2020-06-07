@@ -71,6 +71,36 @@ public class ProjectRepositoryImpl implements ProjectCustomRepository {
 	}
 
 	@Override
+	public String getDepartmentId(long tenantId, String projectId){
+		Criteria criteria = Criteria.where("projectId").is(projectId).and("tenantId").is(tenantId);
+		Query query = new BasicQuery( criteria.getCriteriaObject());
+		query.fields().include("departmentId");
+		Project project = Optional.ofNullable(mongoTemplate.findOne(query, Project.class))
+				.orElseThrow(() -> new PPMSException("Project not found"));
+		return project.getDepartmentId();
+	}
+
+	@Override
+	public Project getProjectWithoutGoals(long tenantId, String projectId){
+		Criteria criteria = Criteria.where("projectId").is(projectId).and("tenantId").is(tenantId);
+		Query query = new BasicQuery( criteria.getCriteriaObject());
+		query.fields().exclude("goals");
+		Project project = Optional.ofNullable(mongoTemplate.findOne(query, Project.class))
+				.orElseThrow(() -> new PPMSException("Project not found"));
+		return project;
+	}
+
+	@Override
+	public ProjectStatus getProjectStatus(long tenantId, String projectId){
+		Criteria criteria = Criteria.where("projectId").is(projectId).and("tenantId").is(tenantId);
+		Query query = new BasicQuery( criteria.getCriteriaObject());
+		query.fields().include("status");
+		Project project = Optional.ofNullable(mongoTemplate.findOne(query, Project.class))
+				.orElseThrow(() -> new PPMSException("Project not found"));
+		return project.getStatus();
+	}
+
+	@Override
 	public String updateProjectNameAndDescriptionAndKeywords(long tenantId, String projectId, Project project){
 		Criteria findProjectCriteria = Criteria.where("projectId").is(projectId).and("tenantId").is(tenantId);
 		final Update update = new Update().set("name", project.getName()).set("shortDescription", project.getShortDescription())
@@ -88,13 +118,11 @@ public class ProjectRepositoryImpl implements ProjectCustomRepository {
 
 
 	@Override
-	public void updateProjectStatus(long tenantId, String projectId, String status){
+	public boolean updateProjectStatus(long tenantId, String projectId, ProjectStatus status){
 		Criteria findProjectCriteria = Criteria.where("projectId").is(projectId).and("tenantId").is(tenantId);
-		final Update update = new Update().set("status", status);
+		final Update update = new Update().set("status", status.name());
 		final UpdateResult wr = mongoTemplate.updateFirst(new BasicQuery(findProjectCriteria.getCriteriaObject()), update, Project.class);
-		if (wr.getModifiedCount() != 1){
-			throw new PPMSException("Unable to update project");
-		}
+		return wr.getModifiedCount() == 1;
 	}
 
 	@Override
@@ -105,27 +133,37 @@ public class ProjectRepositoryImpl implements ProjectCustomRepository {
 
 
 	@Override
-	public void assignPerson(long tenantId, String projectId, String key, ShortPerson shortPerson){
+	public boolean assignPerson(long tenantId, String projectId, String key, Member member){
 		Criteria findProjectCriteria = Criteria.where("projectId").is(projectId).and("tenantId").is(tenantId);
-		final Update update = new Update().addToSet(key, shortPerson);
+		final Update update = new Update().addToSet(key, member);
 		final UpdateResult wr = mongoTemplate.updateFirst(new BasicQuery(findProjectCriteria.getCriteriaObject()),
 				update, Project.class);
-		if (wr.getModifiedCount() != 1){
-			throw new PPMSException("Unable to assign person");
-		}
+		return wr.getModifiedCount() == 1;
 	}
 
+
+
 	@Override
-	public void unAssignPerson(long tenantId, String projectId, String key, String personId){
+	public boolean unAssignPerson(long tenantId, String projectId, String key, String personId){
 		Criteria findProjectCriteria = Criteria.where("projectId").is(projectId).and("tenantId").is(tenantId);
 		final Update update = new Update().pull(key, new BasicDBObject("personId", personId));
 		final UpdateResult wr = mongoTemplate.updateFirst(new BasicQuery(findProjectCriteria.getCriteriaObject()),
 				update, Project.class);
-		if (wr.getModifiedCount() != 1){
-			throw new PPMSException("Unable to unassign person to project");
-		}
+		return wr.getModifiedCount() == 1;
 	}
 
+	@Override
+	public boolean sign(long tenantId, String projectId, String key, String personId) {
+		Criteria findProjectCriteria = Criteria.where("projectId").is(projectId).and("tenantId").is(tenantId);
+		Query query = new BasicQuery(findProjectCriteria.getCriteriaObject());
+		//query.fields().elemMatch("goals", Criteria.where("goalId").is(goalId));
+		final Update update = new Update().set(key + ".$[i].signed", true)
+				.filterArray(Criteria.where("i.personId").is(personId));
+		final UpdateResult wr = mongoTemplate.updateFirst(query,
+				update, Project.class);
+
+		return wr.getModifiedCount() == 1;
+	}
 
 	@Override
 	public void addAttachment(long tenantId,  String projectId,  FileDescriptor fileDescriptor) {
@@ -172,13 +210,16 @@ public class ProjectRepositoryImpl implements ProjectCustomRepository {
 	}
 
 	@Override
-	public String updateGoalNameAndDescription(long tenantId, String projectId, String goalId, Goal goal) {
+	public String updateGoal(long tenantId, String projectId, String goalId, Goal goal) {
 		Criteria findProjectCriteria = Criteria.where("projectId").is(projectId).and("tenantId").is(tenantId);
 		final Update update = new Update().set("goals.$[i].name", goal.getName())
 				.set("goals.$[i].shortDescription", goal.getShortDescription())
 				.set("goals.$[i].description", goal.getDescription())
 				.set("goals.$[i].startDate", goal.getStartDate())
 				.set("goals.$[i].endDate", goal.getEndDate())
+				.set("goals.$[i].status", goal.getStatus().name())
+				.set("goals.$[i].actualStartDate", goal.getActualStartDate())
+				.set("goals.$[i].actualEndDate", goal.getActualEndDate())
 				.filterArray(Criteria.where("i._id").is(new ObjectId(goalId)));
 		final UpdateResult wr = mongoTemplate.updateFirst(new BasicQuery(findProjectCriteria.getCriteriaObject()),
 				update, Project.class);
@@ -305,27 +346,25 @@ public class ProjectRepositoryImpl implements ProjectCustomRepository {
 
 
 	@Override
-	public void assignPerson(long tenantId, String projectId,  String goalId, String taskId, ShortPerson shortPerson){
+	public boolean assignPerson(long tenantId, String projectId,  String goalId, String taskId, ShortPerson shortPerson){
 		Criteria findProjectCriteria = Criteria.where("projectId").is(projectId).and("tenantId").is(tenantId);
 		final Update update = new Update().addToSet("goals.$[i].tasks.$[j].assignedTo", shortPerson)
 				.filterArray(Criteria.where("i._id").is(new ObjectId(goalId)))
 				.filterArray(Criteria.where("j._id").is(new ObjectId(taskId)));
 		final UpdateResult wr = mongoTemplate.updateFirst(new BasicQuery(findProjectCriteria.getCriteriaObject()), update, Project.class);
-		if (wr.getModifiedCount() != 1){
-			throw new PPMSException("Unable to assign task");
-		}
+		return wr.getModifiedCount() == 1;
 	}
 
 	@Override
-	public void unAssignPerson(long tenantId, String projectId, String goalId, String taskId, String personId){
+	public boolean unAssignPerson(long tenantId, String projectId, String goalId, String taskId, String personId){
 		Criteria findProjectCriteria = Criteria.where("projectId").is(projectId).and("tenantId").is(tenantId);
 		final Update update = new Update().pull("goals.$[i].tasks.$[j]", new BasicDBObject("personId", personId))
 				.filterArray(Criteria.where("i._id").is(new ObjectId(goalId))).filterArray(Criteria.where("j._id").is(new ObjectId(taskId)));
 		final UpdateResult wr = mongoTemplate.updateFirst(new BasicQuery(findProjectCriteria.getCriteriaObject()), update, Project.class);
-		if (wr.getModifiedCount() != 1){
-			throw new PPMSException("Unable to assign task");
-		}
+		return wr.getModifiedCount() == 1;
 	}
+
+
 
 	@Override
 	public void deleteTask(long tenantId, String projectId, String goalId, String taskId){

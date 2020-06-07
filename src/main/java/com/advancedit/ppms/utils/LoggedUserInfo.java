@@ -13,7 +13,7 @@ public class LoggedUserInfo {
 
     String email;
     long tenantId;
-
+    String moduleId;
     Set<Role> roles;
     Set<Permission> permissions;
 
