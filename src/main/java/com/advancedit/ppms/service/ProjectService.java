@@ -516,6 +516,7 @@ public class ProjectService {
 
 	public String addNewTask(long tenantId, String projectId, String goalId, Task task) {
 		task.setTaskId(new ObjectId().toHexString());
+		task.setStatus(TaskStatus.NEW);
 		return projectRepository.addTask(tenantId, projectId, goalId, task).getTaskId();
 	}
 
