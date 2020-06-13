@@ -80,7 +80,10 @@ public class OrganisationController {
     
     @RequestMapping(method=RequestMethod.PUT, value="/api/organisations/{organisationId}/departments/{departmentId}")
     public String updateDepartment(@PathVariable String organisationId, @PathVariable String departmentId, @RequestBody Department department) {
-        hasAnyRole(Role.ADMIN_CREATOR, Role.SUPER_ADMIN);
+        hasAnyRole(Role.ADMIN_CREATOR, Role.SUPER_ADMIN,  Role.MODULE_LEADER);
+        if (isHasRole(Role.MODULE_LEADER) && !isDepartmentModelLeader(getLoggedUserInfo().getEmail(), getCurrentTenantId(), organisationId, departmentId)){
+            throw new AccessDeniedException("Only Module leader of this module can perform this operation");
+        }
     	   return organisationService.updateDepartment(getCurrentTenantId(),organisationId, departmentId, department);
     }
     
