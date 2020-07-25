@@ -6,9 +6,11 @@ import com.advancedit.ppms.models.files.FileDescriptor;
 import com.advancedit.ppms.models.person.ShortPerson;
 import com.advancedit.ppms.models.project.*;
 import com.advancedit.ppms.repositories.ProjectCustomRepository;
+import com.fasterxml.classmate.TypeBindings;
 import com.mongodb.BasicDBObject;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.UpdateOptions;
+import org.apache.commons.lang3.StringUtils;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,17 +60,54 @@ public class ProjectRepositoryImpl implements ProjectCustomRepository {
 	}
 
 	@Override
-	public Page<Project> findByAll(long tenantId, String departmentId, Pageable pageable){
+	public Page<Project> findByAll(long tenantId, String departmentId, ProjectStatus status, Pageable pageable){
 		Criteria criteria = Criteria.where("tenantId").is(tenantId);
 		if (departmentId != null) {
 			criteria = criteria.and("departmentId").is(departmentId);
 		}
+        if (status != null) {
+            criteria = criteria.and("status").is(status);
+        }
 		Query query = new BasicQuery( criteria.getCriteriaObject()).with(pageable);
 		query.fields().exclude("goals");
 		List<Project> projects = mongoTemplate.find(query, Project.class);
 		long count = mongoTemplate.count(query, Project.class);
 		return  new PageImpl<>(projects , pageable, count);
 	}
+
+	@Override
+	public Page<Project> findWithGoalByAll(long tenantId, String departmentId, ProjectStatus status, Pageable pageable){
+		Criteria criteria = Criteria.where("tenantId").is(tenantId);
+		if (departmentId != null) {
+			criteria = criteria.and("departmentId").is(departmentId);
+		}
+		if (status != null) {
+			criteria = criteria.and("status").is(status);
+		}
+		Query query = new BasicQuery( criteria.getCriteriaObject()).with(pageable);
+		//query.fields().exclude("goals");
+		List<Project> projects = mongoTemplate.find(query, Project.class);
+		long count = mongoTemplate.count(query, Project.class);
+		return  new PageImpl<>(projects , pageable, count);
+	}
+
+    @Override
+    public List<Project> findAllByPersonId(long tenantId, String key, String personId, String departmentId, ProjectStatus status){
+        Criteria criteria = Criteria.where("tenantId").is(tenantId);
+        if (!StringUtils.isEmpty(departmentId)) {
+            criteria = criteria.and("departmentId").is(departmentId);
+        }
+        if (status != null) {
+            criteria = criteria.and("status").is(status);
+        }
+        if (!StringUtils.isEmpty(personId)) {
+            criteria = criteria.and(key + ".personId").is(personId);
+        }
+        Query query = new BasicQuery( criteria.getCriteriaObject());
+      //  query.fields().exclude("goals");
+        List<Project> projects = mongoTemplate.find(query, Project.class);
+        return projects;
+    }
 
 	@Override
 	public String getDepartmentId(long tenantId, String projectId){

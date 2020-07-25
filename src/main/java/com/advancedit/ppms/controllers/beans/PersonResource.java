@@ -24,6 +24,7 @@ public class PersonResource {
     private ShortDepartment department;
     private boolean valid = false;
     private PersonFunction personfunction;
+    private String shortDescription;
     private String status;
     private long tenantId;
     private String job;
@@ -39,4 +40,10 @@ public class PersonResource {
     private String cvFileId;
     @DateTimeFormat(style = "M-")
     private Date startingDateDate;
+    private List<ProjectResource> projects;
+
+
+    private  int workload;
+    private int currentProjects;
+    private int previousProjects;
 }

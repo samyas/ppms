@@ -55,6 +55,9 @@ public class PersonService {
 		return personRepository.findByTenantIdAndPersonFunctionAndStatus(tenantId, functions, name, status, departmentId, pageableRequest);
 	}
 
+	public List<Person> getListPerson(long tenantId,  String departmentId) {
+		return personRepository.findListByTenantIdAndDepartmentId(tenantId, departmentId);
+	}
     public Person getPersonByEmail(long tenantId, String email){
     	return personRepository.findByTenantIdAndEmail(tenantId, email);
     }
@@ -99,7 +102,9 @@ public class PersonService {
 		return p;
     }
 
-
+	public void updateProjectInfo(long tenantId, String personId, int workload, int currentProjects, int previousProjects) {
+    	personRepository.updateProjectInfo(tenantId, personId, workload, currentProjects, previousProjects);
+	}
     
     public Person updatePerson(long tenantId, Person updatePerson) {
 		Person savedPerson = getPersonById(tenantId, updatePerson.getId());
@@ -119,7 +124,6 @@ public class PersonService {
 				}
 			   department.setResponsible(new ShortPerson(savedPerson.getId(), savedPerson.getFirstName(), savedPerson.getLastName(), savedPerson.getPhotoFileId()));
 				organisationRepository.updateDepartment(tenantId, organisation.getId(), department);
-
 		}else {
 				if (department.getResponsible() != null &&
 						savedPerson.getId().equals(department.getResponsible().getPersonId())){
@@ -127,7 +131,7 @@ public class PersonService {
 					organisationRepository.updateDepartment(tenantId, organisation.getId(), department);
 				}
 		}
-
+		savedPerson.setShortDescription(updatePerson.getShortDescription());
         savedPerson.setPersonfunction(updatePerson.getPersonfunction());
 		savedPerson.setDepartmentId(updatePerson.getDepartmentId());
         return personRepository.save(savedPerson);

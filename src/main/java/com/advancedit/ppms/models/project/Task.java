@@ -30,6 +30,7 @@ public class Task {
 	private List<ShortPerson> assignedTo = new ArrayList<>();
 	private List<Message> messages = new ArrayList<>();
 	private List<FileDescriptor> attachmentList = new ArrayList<>();
+	private Boolean isStep = Boolean.FALSE;
 
 
 }

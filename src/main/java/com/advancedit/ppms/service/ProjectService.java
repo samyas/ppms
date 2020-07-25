@@ -33,6 +33,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.advancedit.ppms.models.project.ProjectStatus.*;
+import static com.advancedit.ppms.utils.SecurityUtils.getCurrentTenantId;
 import static com.advancedit.ppms.utils.SecurityUtils.isHasAnyRole;
 import static java.util.Arrays.asList;
 import static org.apache.commons.lang3.StringUtils.isBlank;
@@ -61,16 +62,21 @@ public class ProjectService {
 		return projectRepository.findAll();
 	}
 
-	public Page<Project> getPagedListProject(long tenantId, int page, int size, String departmentId, String status, String name) {
+	public Page<Project> getPagedListProject(long tenantId, int page, int size, String departmentId, ProjectStatus status, String name) {
 		Pageable pageableRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "name"));;
 		Page<Project> projects = null;
 	//	if (StringUtils.isEmpty(name) && StringUtils.isEmpty(status)) {
-			projects = projectRepository.findByAll(tenantId, departmentId, pageableRequest);
+			projects = projectRepository.findByAll(tenantId, departmentId, status, pageableRequest);
 	//	} else {
 	//		projects = projectRepository.findByAllCriteria(status, name, pageableRequest);
 	//	}
 
 		return projects;
+	}
+
+	public Page<Project> getPagedListProjectWithGoal(long tenantId, int page, int size, String departmentId, ProjectStatus status, String name) {
+		Pageable pageableRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "name"));;
+		return projectRepository.findWithGoalByAll(tenantId, departmentId, status, pageableRequest);
 	}
 	
 	public Page<ProjectSummary> getPagedProjectSummary(long tenantId, int page, int size, String status, String name) {
@@ -124,6 +130,7 @@ public class ProjectService {
 			goal.setActionId(action.getActionId());
 			goal.setStatus(GoalStatus.NEW);
 			goal.setIsAction(true);
+			goal.setAttachmentsArrayList(action.getAttachmentList());
 			if (action.getStartDate() == null) {
 				LocalDate localDate = LocalDate.now().plusWeeks(action.getWeekNbr());
 				Date date = Date.from(localDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
@@ -131,6 +138,7 @@ public class ProjectService {
 			} else {
 				goal.setStartDate(ISO_FORMATTER.parse(action.getStartDate()));
 			}
+			goal.setEndDate(goal.getStartDate());
 			return goal;
 		}catch (ParseException e){
 			throw new PPMSException("Fail to parse action start date", e);
@@ -158,6 +166,14 @@ public class ProjectService {
 		projectRepository.deleteAll();
 	}
 
+	public List<Project> getProjectListByPerson(long tenantId, String departmentId,
+												String personId, PersonFunction personFunction, ProjectStatus status) {
+		if (personFunction.equals(PersonFunction.STUDENT)) {
+			return projectRepository.findAllByPersonId(tenantId, "team", personId, departmentId, status);
+		}
+		return projectRepository.findAllByPersonId(tenantId, "members" +
+				"", personId, departmentId, status);
+	}
 
 	public String getModuleId(long tenantId, String projectId) {
 		return projectRepository.getDepartmentId(tenantId, projectId);
@@ -190,7 +206,13 @@ public class ProjectService {
 		}
 
 		Member member = createMemberFromPersonAndTerm(person, term, false);
-		return projectRepository.assignPerson(tenantId, projectId, "members", member);
+		boolean assigned =  projectRepository.assignPerson(tenantId, projectId, "members", member);
+		if (assigned){
+            int workload = person.getWorkload()  + term.getQuota();
+            int currentProject = person.getCurrentProjects() + 1;
+            personRepository.updateProjectInfo(tenantId, personIdToAssign,workload, currentProject, person.getPreviousProjects());
+        }
+		return assigned;
 
 	}
 	public boolean assignStudent(long tenantId, String projectId,
@@ -215,17 +237,32 @@ public class ProjectService {
 			throw new PPMSException(String.format("Fail to assign Maximum Team members reached: %d", maxTeamNumber));
 		}
 		 Member member = createMemberFromPersonAndTerm(person, null, false);
-		return projectRepository.assignPerson(tenantId, projectId, "team", member);
+		boolean assigned = projectRepository.assignPerson(tenantId, projectId, "team", member);
+        if (assigned){
+            int currentProject = person.getCurrentProjects() + 1;
+            personRepository.updateProjectInfo(tenantId, personIdToAssign, person.getWorkload(), currentProject, person.getPreviousProjects());
+        }
+        return assigned;
 
 	}
 
 
-	public boolean unAssign(long tenantId, String projectId, String personIdToUnassign, String position,  boolean isModelLeader) {
+	public boolean unAssign(long tenantId, String projectId, String personIdToUnassign, String position, SupervisorTerm term ,  boolean isModelLeader) {
 		ProjectStatus projectStatus = projectRepository.getProjectStatus(tenantId, projectId);
 		if (!projectStatus.canAssignUnassign()){
 			throw new PPMSException(ErrorCode.PROJECT_ASSIGN_NOT_ALLOWED, "Project Assign not allowed");
 		}
-		return projectRepository.unAssignPerson(tenantId, projectId, position, personIdToUnassign);
+		boolean unassign = projectRepository.unAssignPerson(tenantId, projectId, position, personIdToUnassign);
+		if (unassign){
+			Person person = getPerson(tenantId, personIdToUnassign);
+			int workload = person.getWorkload();
+			if (Optional.ofNullable(term).isPresent()){
+				workload = workload - term.getQuota();
+			}
+			int currentProject = person.getCurrentProjects() + 1;
+			personRepository.updateProjectInfo(tenantId, personIdToUnassign, workload, currentProject, person.getPreviousProjects());
+		}
+		return unassign;
 	}
 
 
@@ -456,6 +493,7 @@ public class ProjectService {
 						task.setName(newGoalStatus.name());
 						task.setStartDate(new Date());
 						task.setStatus(TaskStatus.REVIEW);
+						task.setIsStep(Boolean.TRUE);
 					}
 					goal.setStatus(newGoalStatus);
 					break;
@@ -466,6 +504,7 @@ public class ProjectService {
 						task.setName(newGoalStatus.name());
 						task.setStartDate(new Date());
 						task.setStatus(TaskStatus.DECLINED);
+						task.setIsStep(Boolean.TRUE);
 					}
 					goal.setStatus(newGoalStatus);
 					break;
@@ -480,6 +519,7 @@ public class ProjectService {
 						task.setName(newGoalStatus.name());
 						task.setStartDate(new Date());
 						task.setStatus(TaskStatus.COMPLETED);
+						task.setIsStep(Boolean.TRUE);
 					}
 					goal.setEndDate(new Date());
 					goal.setStatus(newGoalStatus);
@@ -496,8 +536,9 @@ public class ProjectService {
 
 	}
 
-	public String updateGoal(long tenantId, String projectId, String goalId, Goal goal) {
+	public String updateGoal(long tenantId, String projectId, String goalId, Goal goal, List<FileDescriptor> filesToAdd) {
 		projectRepository.updateGoal(tenantId, projectId, goalId, goal);
+		filesToAdd.forEach( fd -> projectRepository.addAttachment(tenantId, projectId, goalId, fd));
 		return goalId;
 	}
 
@@ -553,21 +594,15 @@ public class ProjectService {
 	}
 
 	public boolean assignTask(long tenantId, String projectId, String goalId, String taskId, Assignment assignment) {
-
 			return projectRepository.assignPerson(tenantId, projectId, goalId, taskId,
 					getShortPerson(tenantId, assignment.getPersonId()));
-
 	}
 
 
 	public boolean unAssignTask(long tenantId, String projectId, String goalId, String taskId, Assignment assignment) {
-
 			return projectRepository.unAssignPerson(tenantId, projectId, goalId, taskId,
 					assignment.getPersonId());
-
 	}
-
-
 
 	public void apply(long tenantId, String projectId, Apply apply) {
 		Project p = getProjectsById(tenantId, projectId);

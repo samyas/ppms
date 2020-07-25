@@ -5,6 +5,11 @@ import com.advancedit.ppms.models.organisation.Organisation;
 import com.advancedit.ppms.models.person.Person;
 import com.advancedit.ppms.models.person.ShortPerson;
 
+import java.util.Collections;
+import java.util.stream.Collectors;
+
+import static java.util.Collections.emptyList;
+
 public class OrganisationPresenter {
 
     public static OrganisationResource toResource(Organisation organisation, Person person){
@@ -23,7 +28,8 @@ public class OrganisationPresenter {
         organisationResource.setResponsible(new ShortPerson(person.getId(), person.getFirstName(), person.getLastName(),
                 person.getPhotoFileId()));
         organisationResource.setType(organisation.getType());
-        organisationResource.setDepartments(organisation.getDepartments());
+        organisationResource.setDepartments(organisation.getDepartments().stream().peek(d -> {d.setActions(emptyList());
+        d.setSupervisorTerms(emptyList()); }).collect(Collectors.toList()));
         return organisationResource;
     }
 }

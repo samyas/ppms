@@ -9,6 +9,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 @Data
 @NoArgsConstructor
@@ -29,7 +30,9 @@ public class Person {
 	private String status;
 	private long tenantId;
 	private FileDescriptor image;
-	
+	private String shortDescription;
+
+
 	//@NotNull
 	private String job;
 	private Integer yearsExperience;
@@ -44,6 +47,10 @@ public class Person {
 	private String cvFileId;
 	@DateTimeFormat(style = "M-")
     private Date startingDateDate;
+
+	private  int workload;
+	private int currentProjects;
+	private int previousProjects;
 }
 
 

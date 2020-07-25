@@ -1,9 +1,12 @@
 package com.advancedit.ppms.controllers;
 
+import com.advancedit.ppms.exceptions.PPMSException;
+import com.advancedit.ppms.models.files.ModuleFile;
 import com.advancedit.ppms.service.AttachFileService;
 import com.advancedit.ppms.service.DocumentManagementService;
 import com.advancedit.ppms.service.FileService;
 import com.advancedit.ppms.service.beans.AttachType;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 
 import static com.advancedit.ppms.service.beans.AttachType.ORGANISATION;
 import static com.advancedit.ppms.service.beans.AttachType.PERSON;
@@ -42,6 +46,10 @@ public class FileController {
 	public ResponseEntity uploadFile(@RequestParam("file") MultipartFile file,
 									 @RequestParam("type") AttachType type, @RequestParam("id") String id) throws IOException {
 		LOGGER.info("Upload file ...");
+
+		if (StringUtils.isEmpty(id)){
+		    throw new PPMSException("File id is empty");
+        }
 		// local variables
 		String mimeType = file.getContentType();
 		String fileName = file.getOriginalFilename();
@@ -89,4 +97,11 @@ public class FileController {
 				.header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
 				.body(new ByteArrayResource(data));
 	}
+
+
+	@RequestMapping(method= RequestMethod.GET, value="/list")
+	public List<ModuleFile> listFiles(@RequestParam("moduleId") String moduleId) {
+		return attachFileService.getModuleFiles(getCurrentTenantId(), moduleId);
+	}
+
 }

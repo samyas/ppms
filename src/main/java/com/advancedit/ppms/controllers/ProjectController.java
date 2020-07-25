@@ -1,13 +1,12 @@
 package com.advancedit.ppms.controllers;
 
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import com.advancedit.ppms.controllers.beans.ProjectResource;
 import com.advancedit.ppms.exceptions.ErrorCode;
 import com.advancedit.ppms.exceptions.PPMSException;
+import com.advancedit.ppms.models.files.FileDescriptor;
 import com.advancedit.ppms.models.organisation.Action;
 import com.advancedit.ppms.models.organisation.Department;
 import com.advancedit.ppms.models.organisation.Organisation;
@@ -17,25 +16,27 @@ import com.advancedit.ppms.models.person.ShortPerson;
 import com.advancedit.ppms.models.project.*;
 import com.advancedit.ppms.models.sequences.DatabaseSequence;
 import com.advancedit.ppms.models.user.Role;
+import com.advancedit.ppms.service.DocumentManagementService;
 import com.advancedit.ppms.service.OrganisationService;
 import com.advancedit.ppms.service.PersonService;
 import com.advancedit.ppms.utils.LoggedUserInfo;
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.http.entity.ContentType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.util.CollectionUtils;
+import org.springframework.web.bind.annotation.*;
 
 import com.advancedit.ppms.controllers.beans.Apply;
 import com.advancedit.ppms.controllers.beans.Assignment;
 import com.advancedit.ppms.service.ProjectService;
+import org.springframework.web.multipart.MultipartFile;
 
 import static com.advancedit.ppms.controllers.presenter.ProjectPresenter.toResource;
+import static com.advancedit.ppms.service.beans.AttachType.ORGANISATION;
+import static com.advancedit.ppms.service.beans.AttachType.PERSON;
 import static com.advancedit.ppms.utils.SecurityUtils.*;
 import static java.util.Arrays.asList;
 
@@ -51,6 +52,9 @@ public class ProjectController {
     @Autowired
     OrganisationService organisationService;
 
+    @Autowired
+    DocumentManagementService documentManagementService;
+
     @RequestMapping(method=RequestMethod.GET, value="/api/projects")
     public List<Project> all() {
         return  projectService.getAllProjects(getCurrentTenantId());
@@ -58,17 +62,32 @@ public class ProjectController {
     
     @RequestMapping(method=RequestMethod.GET, value="/api/projects/paged")
     public Page<ProjectResource> getPagedProjects(@RequestParam("page") int page, @RequestParam("size") int size,
-                                                  @RequestParam(name = "status", required=false)String status,
+                                                  @RequestParam(name = "status", required=false)ProjectStatus status,
                                                   @RequestParam(name = "name", required=false)String name) {
         LoggedUserInfo loggedUserInfo = getLoggedUserInfo();
         Person person = personService.getPersonByEmail(loggedUserInfo.getTenantId(), loggedUserInfo.getEmail());
         Organisation organisation = organisationService.getOrganisationByTenantId(loggedUserInfo.getTenantId())
                .orElseThrow(() -> new PPMSException(ErrorCode.ORGANISATION_ID_NOT_FOUND, "Organisation was not found"));
         Page<Project> pagedListProject = projectService.getPagedListProject(getCurrentTenantId(), page, size, person.getDepartmentId(), status, name);
+
         List<ProjectResource> collect = pagedListProject.stream().map(p -> toResource(p, organisation, null, false)).collect(Collectors.toList());
         return new PageImpl<>(collect, pagedListProject.getPageable(), pagedListProject.getTotalElements());
     }
-    
+
+    @RequestMapping(method=RequestMethod.GET, value="/api/projects/with-goals/paged")
+    public Page<ProjectResource> getPagedProjectsWithGoal(@RequestParam("page") int page, @RequestParam("size") int size,
+                                                  @RequestParam(name = "status", required=false)ProjectStatus status,
+                                                  @RequestParam(name = "name", required=false)String name) {
+
+        hasAnyRole(Role.ADMIN_CREATOR, Role.SUPER_ADMIN, Role.MODULE_LEADER);
+        LoggedUserInfo loggedUserInfo = getLoggedUserInfo();
+        Person person = personService.getPersonByEmail(loggedUserInfo.getTenantId(), loggedUserInfo.getEmail());
+        Organisation organisation = organisationService.getOrganisationByTenantId(loggedUserInfo.getTenantId())
+                .orElseThrow(() -> new PPMSException(ErrorCode.ORGANISATION_ID_NOT_FOUND, "Organisation was not found"));
+        Page<Project> pagedListProject = projectService.getPagedListProjectWithGoal(getCurrentTenantId(), page, size, person.getDepartmentId(), status, name);
+        List<ProjectResource> collect = pagedListProject.stream().map(p -> toResource(p, organisation, null, true)).collect(Collectors.toList());
+        return new PageImpl<>(collect, pagedListProject.getPageable(), pagedListProject.getTotalElements());
+    }
 
     //Assign Process
     @RequestMapping(method=RequestMethod.POST, value="/api/projects/{projectId}/apply")
@@ -101,11 +120,13 @@ public class ProjectController {
 
     @RequestMapping(method=RequestMethod.POST, value="/api/projects/{projectId}/unassign")
     public void unassign(@PathVariable String projectId, @RequestParam("position") String position,
-                         @RequestParam("personId") String personId) {
+                         @RequestParam("personId") String personId,  @RequestParam(value = "termId",required = false) String termId) {
         hasAnyRole(Role.ADMIN_CREATOR, Role.SUPER_ADMIN, Role.MODULE_LEADER, Role.STAFF);
         String projectModuleId = projectService.getModuleId(getCurrentTenantId(), projectId);
         if (isHasAnyRole(Role.MODULE_LEADER, Role.STAFF)) isSameModule(projectModuleId);
-        projectService.unAssign(getCurrentTenantId(), projectId, personId, position, isHasRole(Role.MODULE_LEADER));
+        SupervisorTerm term = Optional.ofNullable(termId).flatMap( t -> organisationService.getTerm(getCurrentTenantId(), projectModuleId, t))
+                .orElse(null);
+        projectService.unAssign(getCurrentTenantId(), projectId, personId, position,  term, isHasRole(Role.MODULE_LEADER));
     }
 
     @RequestMapping(method=RequestMethod.POST, value="/api/projects/{projectId}/sign")
@@ -234,10 +255,6 @@ public class ProjectController {
     }
     
     /****************************************Goals*************************************************************/
-    @RequestMapping(method=RequestMethod.POST, value="/api/projects/{projectId}/goal")
-    public String addGoal(@PathVariable String projectId, @RequestBody Goal goal) {
-        return projectService.addGoal(getCurrentTenantId(), projectId, goal, getLoggedUserInfo().getEmail());
-    }
 
     @RequestMapping(method=RequestMethod.POST, value="/api/projects/{projectId}/goals/{goalId}/status")
     public String setGoalStatus(@PathVariable String projectId, @PathVariable String goalId,
@@ -253,6 +270,37 @@ public class ProjectController {
         return goalId;
     }
 
+
+    private FileDescriptor storeFile(long tenantId, String projectId, String type, MultipartFile file){
+        String mimeType = file.getContentType();
+        String fileName = file.getOriginalFilename();
+        String fileKey = String.format("ORG-%d/projects/%s/%s/%s", tenantId, projectId, type, fileName);
+        String url = documentManagementService.uploadFile(fileKey, file, false);
+        return new FileDescriptor(fileName, fileKey, url, mimeType);
+    }
+
+
+    @RequestMapping(method=RequestMethod.POST, value="/api/projects/{projectId}/goals/{goalId}/status-with-upload" , consumes = {"multipart/form-data"})
+    public String setGoalStatusWithFiles(@PathVariable String projectId, @PathVariable String goalId,
+                                      @RequestParam("status") GoalStatus newStatus,
+                                      @RequestPart("task") Task task,
+                                      @RequestPart("files") List<MultipartFile> files) {
+        long tenantId = getCurrentTenantId();
+        String projectModuleId = projectService.getModuleId(tenantId, projectId);
+        if (isHasAnyRole(Role.MODULE_LEADER, Role.STAFF, Role.STUDENT)) isSameModule(projectModuleId);
+
+        if (asList(GoalStatus.COMPLETED, GoalStatus.DECLINED).contains(newStatus) ){
+            hasAnyRole(Role.ADMIN_CREATOR, Role.MODULE_LEADER, Role.STAFF);
+        }
+        if (task != null && !CollectionUtils.isEmpty(files)){
+            task.setAttachmentList(files.stream().map(f -> storeFile(tenantId, projectId, "actions", f)).collect(Collectors.toList()));
+        }
+
+        projectService.updateGoalStatus(tenantId, projectId, goalId, getLoggedUserInfo().getEmail(),
+                newStatus, task, isHasAnyRole(Role.MODULE_LEADER));
+
+        return goalId;
+    }
 
     @RequestMapping(method=RequestMethod.GET, value="/api/projects/{projectId}/goals/{goalId}")
     public Goal getGoal(@PathVariable String projectId, @PathVariable String goalId) {
@@ -270,10 +318,36 @@ public class ProjectController {
     public String addNewGoal(@PathVariable String projectId, @RequestBody Goal goal) {
     	return projectService.addGoal(getCurrentTenantId(), projectId, goal, getLoggedUserInfo().getEmail());
     }
-    
+
+    @RequestMapping(method=RequestMethod.POST, value="/api/projects/{projectId}/goals-with-upload", consumes = {"multipart/form-data"})
+    public String addGoalWithFile(@PathVariable String projectId,
+                                  @RequestPart("goal")  Goal goal,
+                                  @RequestPart("files") List<MultipartFile> files) {
+        long tenantId = getCurrentTenantId();
+        String projectModuleId = projectService.getModuleId(getCurrentTenantId(), projectId);
+        if (isHasAnyRole(Role.MODULE_LEADER, Role.STAFF, Role.STUDENT)) isSameModule(projectModuleId);
+
+        if (goal != null && !CollectionUtils.isEmpty(files)){
+            goal.setAttachmentsArrayList(files.stream().map(f -> storeFile(tenantId, projectId, "goals", f)).collect(Collectors.toList()));
+        }
+        return projectService.addGoal(getCurrentTenantId(), projectId, goal, getLoggedUserInfo().getEmail());
+    }
     @RequestMapping(method=RequestMethod.PUT, value="/api/projects/{projectId}/goals/{goalId}")
-    public String updateGoal(@PathVariable String projectId, @PathVariable String goalId, @RequestBody Goal goal) {
-    	return projectService.updateGoal(getCurrentTenantId(), projectId, goalId, goal);
+    public String updateGoal(@PathVariable String projectId, @PathVariable String goalId, @RequestBody Goal goal){
+        return projectService.updateGoal(getCurrentTenantId(), projectId, goalId, goal, Collections.emptyList());
+    }
+
+    @RequestMapping(method=RequestMethod.PUT, value="/api/projects/{projectId}/goals-with-upload/{goalId}", consumes = {"multipart/form-data"})
+    public String updateGoalWithFile(@PathVariable String projectId, @PathVariable String goalId,   @RequestPart("goal")  Goal goal,
+                             @RequestPart("files") List<MultipartFile> files) {
+        long tenantId = getCurrentTenantId();
+        String projectModuleId = projectService.getModuleId(getCurrentTenantId(), projectId);
+        if (isHasAnyRole(Role.MODULE_LEADER, Role.STAFF, Role.STUDENT)) isSameModule(projectModuleId);
+
+        List<FileDescriptor> fileDescriptors = Optional.ofNullable(files)
+                .map(fs -> fs.stream().map(f -> storeFile(tenantId, projectId, "goals", f)).collect(Collectors.toList()))
+                .orElse(Collections.emptyList());
+    	return projectService.updateGoal(getCurrentTenantId(), projectId, goalId, goal, fileDescriptors);
     }
 
     /******************************************** TASKS********************************************************/
@@ -292,6 +366,9 @@ public class ProjectController {
     public String addNewTask(@PathVariable String projectId, @PathVariable String goalId, @RequestBody Task task) {
     	return projectService.addNewTask(getCurrentTenantId(), projectId, goalId, task);
     }
+
+
+
     
     @RequestMapping(method=RequestMethod.PUT, value="/api/projects/{projectId}/goals/{goalId}/tasks/{taskId}")
     public String updateTask(@PathVariable String projectId, @PathVariable String goalId, @PathVariable String taskId, @RequestBody Task task) {

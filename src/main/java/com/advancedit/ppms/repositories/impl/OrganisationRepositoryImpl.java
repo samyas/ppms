@@ -5,6 +5,8 @@ import com.advancedit.ppms.models.files.FileDescriptor;
 import com.advancedit.ppms.models.organisation.*;
 import com.advancedit.ppms.models.project.Project;
 import com.advancedit.ppms.repositories.OrganisationCustomRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.mongodb.BasicDBObject;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.UpdateOptions;
@@ -17,8 +19,11 @@ import org.springframework.data.mongodb.core.query.BasicQuery;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Update;
 
+import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 
 public class OrganisationRepositoryImpl implements OrganisationCustomRepository {
@@ -137,27 +142,50 @@ public class OrganisationRepositoryImpl implements OrganisationCustomRepository 
 		return action;
 	}
 
+	private Document convertToDocument(FileDescriptor fileDescriptor, JsonMapper mapper){
+		try {
+			return Document.parse(mapper.writeValueAsString(fileDescriptor));
+		} catch (JsonProcessingException e) {
+			throw new PPMSException("Unable to update action", e);
+		}
+	}
 	@Override
 	public void updateAction(long tenantId, String organisationId, String departmentId, Action action) {
-		UpdateResult wr2 = mongoTemplate.getCollection("organisations").updateMany(
-				new Document().append("_id", new ObjectId(organisationId) ).append("tenantId", tenantId)
-				,new Document().append("$set", new Document()
-						.append("departments.$[i].actions.$[j].name", action.getName())
-						.append("departments.$[i].actions.$[j].description", action.getDescription())
-						.append("departments.$[i].actions.$[j].startDate", action.getStartDate())
-						.append("departments.$[i].actions.$[j].endDate", action.getEndDate())
-						.append("departments.$[i].actions.$[j].dateNbr", action.getDateNbr())
-						.append("departments.$[i].actions.$[j].weekNbr", action.getWeekNbr())
-						.append("departments.$[i].actions.$[j].order", action.getOrder())
-						.append("departments.$[i].actions.$[j].beforeStart", action.getBeforeStart())
-				),
-				new UpdateOptions().arrayFilters(Arrays.asList(
-						Filters.eq("i._id", new ObjectId(departmentId)),
-						Filters.eq("j._id", new ObjectId(action.getActionId()))))
-		);
-		if (wr2.getModifiedCount() != 1){
-			throw new PPMSException("Unable to update term");
-		}
+
+		JsonMapper mapper = new JsonMapper();
+
+		List<Document> documentList = action.getAttachmentList().stream().map(fd -> convertToDocument(fd, mapper)).collect(Collectors.toList());
+
+
+			UpdateResult wr2 = mongoTemplate.getCollection("organisations").updateMany(
+					new Document().append("_id", new ObjectId(organisationId)).append("tenantId", tenantId)
+					, new Document().append("$set", new Document()
+							.append("departments.$[i].actions.$[j].name", action.getName())
+							.append("departments.$[i].actions.$[j].description", action.getDescription())
+							.append("departments.$[i].actions.$[j].startDate", action.getStartDate())
+							.append("departments.$[i].actions.$[j].endDate", action.getEndDate())
+							.append("departments.$[i].actions.$[j].dateNbr", action.getDateNbr())
+							.append("departments.$[i].actions.$[j].weekNbr", action.getWeekNbr())
+							.append("departments.$[i].actions.$[j].order", action.getOrder())
+							.append("departments.$[i].actions.$[j].attachmentList", documentList)
+							.append("departments.$[i].actions.$[j].beforeStart", action.getBeforeStart())
+					),
+					new UpdateOptions().arrayFilters(Arrays.asList(
+							Filters.eq("i._id", new ObjectId(departmentId)),
+							Filters.eq("j._id", new ObjectId(action.getActionId()))))
+			);
+			if (wr2.getModifiedCount() != 1) {
+				throw new PPMSException("Unable to update action");
+			}
+
+		/*Criteria findDepartmentCriteria = Criteria.where("id").is(organisationId).and("tenantId").is(tenantId);
+		final Update update = new Update().set("departments.$[i].actions.$[j]", action)
+				.filterArray(Criteria.where("i._id").is(new ObjectId(departmentId)))
+				.filterArray(Criteria.where("j._id").is(new ObjectId(action.getActionId())));
+		final UpdateResult wr = mongoTemplate.updateFirst(new BasicQuery(findDepartmentCriteria.getCriteriaObject()), update, Organisation.class);
+		if (wr.getModifiedCount() != 1){
+			throw new PPMSException("Unable to update actions");
+		}*/
 	}
 
 	@Override

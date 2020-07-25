@@ -1,5 +1,6 @@
 package com.advancedit.ppms.controllers.beans;
 
+import com.advancedit.ppms.models.organisation.ShortDepartment;
 import com.advancedit.ppms.models.user.Permission;
 import com.advancedit.ppms.models.user.Role;
 import lombok.Data;
@@ -33,5 +34,6 @@ public class UserResource {
 	private Set<Role> roles;
 	private Set<Permission> permissions;
 	private String personId;
+	private ShortDepartment department;
 	
 }

@@ -20,6 +20,7 @@ public enum ProjectStatus {
 	REALLOCATED("Re-Allocated"),
 	COMPLETED("Completed"),
 
+	CLOSED("Closed"),
 	NEW("Draft");
 
 	private String label;

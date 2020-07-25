@@ -5,6 +5,7 @@ import com.advancedit.ppms.controllers.beans.*;
 import com.advancedit.ppms.controllers.presenter.UserPresenter;
 import com.advancedit.ppms.exceptions.ErrorCode;
 import com.advancedit.ppms.exceptions.PPMSException;
+import com.advancedit.ppms.models.organisation.Department;
 import com.advancedit.ppms.models.organisation.Organisation;
 import com.advancedit.ppms.models.person.Person;
 import com.advancedit.ppms.models.person.PersonFunction;
@@ -12,6 +13,7 @@ import com.advancedit.ppms.models.user.Role;
 import com.advancedit.ppms.models.user.User;
 import com.advancedit.ppms.models.user.VerificationToken;
 import com.advancedit.ppms.service.*;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -31,6 +33,7 @@ import static com.advancedit.ppms.models.user.Role.ADMIN_CREATOR;
 import static com.advancedit.ppms.models.user.Role.SUPER_ADMIN;
 import static com.advancedit.ppms.utils.SecurityUtils.*;
 import static java.lang.Boolean.TRUE;
+import static org.apache.commons.lang3.StringUtils.isBlank;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -240,8 +243,13 @@ public class AuthController {
 
 	@RequestMapping(method= RequestMethod.GET, value="/info")
 	public UserResource getUserInfo() {
+		Person person = personService.getPersonByEmail(getCurrentTenantId(), getLoggedUserInfo().getEmail());
+		Department department = null;
+		if (!isBlank(person.getDepartmentId())){
+			department = organisationService.getDepartment(getCurrentTenantId(), person.getDepartmentId());
+		}
 		return UserPresenter.toResource(userService.getUserByEmail(getLoggedUserInfo().getEmail())
-		, personService.getPersonByEmail(getCurrentTenantId(), getLoggedUserInfo().getEmail()));
+		, person, getLoggedUserInfo().getRoles(), department);
 	}
 
 	@RequestMapping(method=RequestMethod.GET, value="/organisations")

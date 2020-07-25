@@ -2,17 +2,23 @@ package com.advancedit.ppms.service;
 
 import com.advancedit.ppms.exceptions.ErrorCode;
 import com.advancedit.ppms.exceptions.PPMSException;
+import com.advancedit.ppms.models.files.FileDescriptor;
+import com.advancedit.ppms.models.files.ModuleFile;
 import com.advancedit.ppms.models.organisation.*;
 import com.advancedit.ppms.models.person.ShortPerson;
 import com.advancedit.ppms.repositories.FileStorageRepository;
 import com.advancedit.ppms.repositories.OrganisationRepository;
 import com.advancedit.ppms.repositories.PersonRepository;
+import com.advancedit.ppms.repositories.ModuleFileRepository;
+import com.advancedit.ppms.service.beans.AttachType;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static org.apache.logging.log4j.util.Strings.isEmpty;
 
 
 @Service
@@ -25,9 +31,13 @@ public class OrganisationService {
 
 	@Autowired
 	private PersonRepository personRepository;
-	
+
 	@Autowired
 	private FileStorageRepository fileStorageRepository;
+
+
+	@Autowired
+	private ModuleFileRepository moduleFileRepository;
 
 
 
@@ -157,7 +167,12 @@ public class OrganisationService {
 
 	public String addAction(long tenantId, String organisationId, String departmentId, Action action) {
 		action.setActionId(new ObjectId().toHexString());
-		return organisationRepository.addAction(tenantId, organisationId, departmentId, action).getActionId();
+		if (action.getAttachmentList() != null){
+            action.setAttachmentList( getFileDescriptors(tenantId, action.getAttachmentList()));
+        }
+		String actionId = organisationRepository.addAction(tenantId, organisationId, departmentId, action).getActionId();
+		//files.keySet().forEach( id -> unlinkedFileRepository.deleteById(id));
+		return actionId;
 	}
 
 	public Action getAction(long tenantId, String organisationId, String departmentId, String actionId) {
@@ -168,6 +183,9 @@ public class OrganisationService {
 
 	public String updateAction(long tenantId, String organisationId, String departmentId, String actionId,  Action action) {
 		action.setActionId(actionId);
+        if (action.getAttachmentList() != null){
+            action.setAttachmentList( getFileDescriptors(tenantId, action.getAttachmentList()));
+        }
 		organisationRepository.updateAction(tenantId, organisationId, departmentId, action);
 		return actionId;
 	}
@@ -175,6 +193,30 @@ public class OrganisationService {
 	public void deleteAction(long tenantId, String organisationId, String departmentId, String actionId) {
 		organisationRepository.deleteAction(tenantId, organisationId, departmentId, actionId);
 	}
+
+
+    private List<FileDescriptor> getFileDescriptors(long tenantId,  List<FileDescriptor> fileDescriptors){
+        return fileDescriptors.stream()
+                .map(fd -> isEmpty(fd.getKey()) ? getFileDescriptorByUrl(tenantId, fd.getUrl()): fd)
+                .collect(Collectors.toList());
+    }
+
+    private FileDescriptor getFileDescriptorByUrl(long tenantId, String url){
+        ModuleFile moduleFile = moduleFileRepository.findByTenantIdAndUrlAndType(tenantId, url, AttachType.MODULE);
+        if (moduleFile == null){
+            throw new PPMSException(String.format("Linked File %s not found", url));
+        }
+        return  new FileDescriptor(moduleFile.getFileName(), moduleFile.getKey(), url, moduleFile.getContentType());
+    }
+
+
+  /*  private Map.Entry<String, FileDescriptor> getFileDescriptorByUrl(long tenantId, String url){
+		 UnlinkedFile unlinkedFile = unlinkedFileRepository.findByTenantIdAndUrlAndAttachType(tenantId, url, AttachType.MODULE);
+		 if (unlinkedFile == null){
+		 	throw new PPMSException(String.format("Linked File %s not found", url));
+		 }
+		 return new AbstractMap.SimpleEntry<>(unlinkedFile.getId(), new FileDescriptor(unlinkedFile.getFileName(), unlinkedFile.getKey(), url, unlinkedFile.getContentType()));
+	 }*/
 
 	/*************************** SECTORS *************************************/
 

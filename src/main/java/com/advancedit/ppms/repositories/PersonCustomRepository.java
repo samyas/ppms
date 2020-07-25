@@ -14,10 +14,14 @@ public interface PersonCustomRepository {
     Page<Person> findByTenantIdAndPersonFunctionAndStatus(long tenantId, List<PersonFunction> personFunctions, String name, String status,
                                                           String departmentId, Pageable pageable);
 
+
+    List<Person> findListByTenantIdAndDepartmentId(long tenantId, String departmentId);
+
     void updateImage(long tenantId,  String personId,  FileDescriptor fileDescriptor);
 
     Optional<Person> findByTenantIdAndPersonId(long tenantId, String personId);
 
+    void updateProjectInfo(long tenantId,  String personId, int workload, int currentProjects, int previousProjects);
 
     String getDepartmentId(long tenantId, String personId);
 

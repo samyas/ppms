@@ -7,6 +7,7 @@ import com.advancedit.ppms.controllers.beans.OrganisationResource;
 import com.advancedit.ppms.exceptions.ErrorCode;
 import com.advancedit.ppms.exceptions.PPMSException;
 import com.advancedit.ppms.models.organisation.*;
+import com.advancedit.ppms.models.person.Person;
 import com.advancedit.ppms.models.person.ShortPerson;
 import com.advancedit.ppms.models.user.Role;
 import com.advancedit.ppms.service.PersonService;
@@ -47,7 +48,7 @@ public class OrganisationController {
     public OrganisationResource getDetailByUser() {
         Organisation organisation = organisationService.getOrganisationByTenantId(getCurrentTenantId()).orElseThrow(() ->
                 new PPMSException(ErrorCode.ORGANISATION_ID_NOT_FOUND, "No organisation found linked to the connected user"));
-       return toResource(organisation, personService.getPersonByEmail(getCurrentTenantId(), organisation.getResponsibleEmail()));
+        return toResource(organisation, personService.getPersonByEmail(getCurrentTenantId(), organisation.getResponsibleEmail()));
     }
 
     @RequestMapping(method=RequestMethod.GET, value="/api/organisations/{organisationId}")

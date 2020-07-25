@@ -29,5 +29,6 @@ public class OrganisationResource {
     private String logoId;
     private ShortPerson responsible;
     private OrganisationType type;
+    private boolean isExtended;
     private List<Department> departments = new ArrayList<>();
 }

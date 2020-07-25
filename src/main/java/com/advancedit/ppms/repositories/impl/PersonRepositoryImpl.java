@@ -59,6 +59,16 @@ public class PersonRepositoryImpl implements PersonCustomRepository {
 	}
 
 	@Override
+	public List<Person> findListByTenantIdAndDepartmentId(long tenantId, String departmentId){
+		Criteria criteria = Criteria.where("tenantId").is(tenantId);
+		if (departmentId != null) {
+			criteria = criteria.and("departmentId").is(departmentId);
+		}
+		Query query = new BasicQuery( criteria.getCriteriaObject());
+		return  mongoTemplate.find(query, Person.class);
+	}
+
+	@Override
 	public String getDepartmentId(long tenantId, String personId){
 		Criteria criteria = Criteria.where("id").is(personId).and("tenantId").is(tenantId);
 		Query query = new BasicQuery( criteria.getCriteriaObject());
@@ -76,6 +86,18 @@ public class PersonRepositoryImpl implements PersonCustomRepository {
 		final UpdateResult wr = mongoTemplate.updateFirst(query, update, Person.class);
 		if (wr.getModifiedCount() != 1){
 			throw new PPMSException("Unable to set image");
+		}
+	}
+
+	@Override
+	public void updateProjectInfo(long tenantId,  String personId, int workload, int currentProjects, int previousProjects) {
+		final BasicQuery query = new BasicQuery(Criteria.where("id").is(personId).and("tenantId").is(tenantId)
+				.getCriteriaObject());
+		final Update update = new Update().set("workload", workload).set("currentProjects", currentProjects)
+				.set("previousProjects", previousProjects);
+		final UpdateResult wr = mongoTemplate.updateFirst(query, update, Person.class);
+		if (wr.getModifiedCount() != 1){
+			throw new PPMSException("Unable to update workload");
 		}
 	}
 

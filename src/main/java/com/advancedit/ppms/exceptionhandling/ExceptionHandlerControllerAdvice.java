@@ -3,6 +3,7 @@ package com.advancedit.ppms.exceptionhandling;
 import com.advancedit.ppms.configs.JwtAuthenticationEntryPoint;
 import com.advancedit.ppms.controllers.beans.ApiError;
 import com.advancedit.ppms.exceptions.PPMSException;
+import org.apache.tomcat.util.http.fileupload.impl.FileSizeLimitExceededException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.Ordered;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import javax.servlet.http.HttpServletRequest;
@@ -36,6 +38,17 @@ public class ExceptionHandlerControllerAdvice extends ResponseEntityExceptionHan
         return error;
     }*/
 
+
+
+
+  //  Caused by: java.lang.IllegalStateException: org.apache.tomcat.util.http.fileupload.impl.FileSizeLimitExceededException: The field file exceeds its maximum permitted size of 1048576 bytes.
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    protected ResponseEntity<Object> fileSizeLimit( MaxUploadSizeExceededException ex,   final HttpServletRequest request){
+        LOGGER.error("Error occurred ", ex);
+        return new ResponseEntity<>(new ErrorResponse(new RuntimeException("The field file exceeds its maximum permitted size of 1048576 bytes (1MB)."),
+                request.getRequestURI()), HttpStatus.INTERNAL_SERVER_ERROR);
+    }
 
     @ExceptionHandler(PPMSException.class)
     protected ResponseEntity<Object> handlePPMSException(

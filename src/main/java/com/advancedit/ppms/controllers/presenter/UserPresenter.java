@@ -8,16 +8,18 @@ import com.advancedit.ppms.models.organisation.ShortDepartment;
 import com.advancedit.ppms.models.person.Person;
 import com.advancedit.ppms.models.person.PersonFunction;
 import com.advancedit.ppms.models.person.ShortPerson;
+import com.advancedit.ppms.models.user.Role;
 import com.advancedit.ppms.models.user.User;
 
 import java.util.Optional;
+import java.util.Set;
 
 import static com.advancedit.ppms.models.person.PersonFunction.isStaff;
 
 public class UserPresenter {
 
 
-    public static UserResource toResource(User user , Person person){
+    public static UserResource toResource(User user , Person person, Set<Role> roles, Department department){
      UserResource userResource = new UserResource();
         userResource.setId(user.getId());
         userResource.setEmail(user.getEmail());
@@ -30,9 +32,10 @@ public class UserPresenter {
         userResource.setMessage(user.getMessage());
         userResource.setTenantIds(user.getTenantIds());
         userResource.setDefaultTenantId(user.getDefaultTenantId());
-        userResource.setRoles(user.getRoles());
+        userResource.setRoles(roles);
         userResource.setPermissions(user.getPermissions());
         userResource.setPersonId(person.getId());
+        if (department != null) userResource.setDepartment(new ShortDepartment(department.getDepartmentId(), department.getName()));
      return userResource;
     }
 

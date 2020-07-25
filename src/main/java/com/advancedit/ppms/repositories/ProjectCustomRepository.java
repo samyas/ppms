@@ -13,7 +13,11 @@ public interface ProjectCustomRepository {
 
 	Page<ProjectSummary> getPagedProjectSummary(long tenantId, int page, int size, Pageable pageable);
 
-	Page<Project> findByAll(long tenantId, String departmentId, Pageable pageable);
+	Page<Project> findByAll(long tenantId, String departmentId, ProjectStatus status, Pageable pageable);
+
+    Page<Project> findWithGoalByAll(long tenantId, String departmentId, ProjectStatus status, Pageable pageable);
+
+    List<Project> findAllByPersonId(long tenantId, String key, String personId, String departmentId, ProjectStatus status);
 
     boolean existByProjectIdAndTenantId(String projectId, long tenantId);
 

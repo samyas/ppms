@@ -45,4 +45,6 @@ public class ProjectResource {
     private List<String> organisationsId = new ArrayList<>();
     private long tenantId;
     private boolean extended;
+    private boolean edit;
+    private Goal nextAction;
 }

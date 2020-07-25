@@ -1,36 +1,32 @@
 package com.advancedit.ppms.controllers;
 
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
-
 import com.advancedit.ppms.controllers.beans.PersonResource;
+import com.advancedit.ppms.controllers.beans.ProjectResource;
+import com.advancedit.ppms.controllers.presenter.ProjectPresenter;
 import com.advancedit.ppms.exceptions.ErrorCode;
 import com.advancedit.ppms.exceptions.PPMSException;
+import com.advancedit.ppms.models.organisation.Department;
 import com.advancedit.ppms.models.organisation.Organisation;
+import com.advancedit.ppms.models.organisation.SupervisorTerm;
+import com.advancedit.ppms.models.person.Person;
+import com.advancedit.ppms.models.person.PersonFunction;
+import com.advancedit.ppms.models.project.Project;
+import com.advancedit.ppms.models.project.ProjectStatus;
 import com.advancedit.ppms.models.user.Role;
 import com.advancedit.ppms.models.user.VerificationToken;
-import com.advancedit.ppms.service.EmailService;
-import com.advancedit.ppms.service.OrganisationService;
-import com.advancedit.ppms.service.PersonService;
-import com.advancedit.ppms.service.VerificationTokenService;
+import com.advancedit.ppms.service.*;
 import com.advancedit.ppms.utils.LoggedUserInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
-import com.advancedit.ppms.models.person.Person;
-import com.advancedit.ppms.models.person.PersonFunction;
+import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
+import java.net.MalformedURLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static com.advancedit.ppms.controllers.presenter.PersonPresenter.toResource;
 import static com.advancedit.ppms.utils.SecurityUtils.*;
@@ -50,6 +46,9 @@ public class PersonController {
 
     @Autowired
     private EmailService emailService;
+
+    @Autowired
+    ProjectService projectService;
 
 
     @RequestMapping(method=RequestMethod.GET, value="/api/persons")
@@ -88,11 +87,25 @@ public class PersonController {
         hasAnyRole(Role.SUPER_ADMIN, Role.ADMIN_CREATOR, Role.MODULE_LEADER);
 
         Person p = personService.addPerson(getCurrentTenantId(), person);
-
-
         sendJoinInvitation(getCurrentTenantId(), p, organisationService.getOrganisationByTenantId(getCurrentTenantId()).get()
                 , request.getHeader("Origin"));
         return p.getId();
+    }
+
+    @RequestMapping(method=RequestMethod.PUT, value="/api/persons/sync-all")
+    public void syncAll( @RequestParam(value = "departmentId", required = false) String departmentId) {
+        hasAnyRole(Role.SUPER_ADMIN, Role.ADMIN_CREATOR, Role.MODULE_LEADER);
+
+        LoggedUserInfo loggedUserInfo = getLoggedUserInfo();
+        long tenantId = loggedUserInfo.getTenantId();
+        String currentDepartmentId = Optional.ofNullable(loggedUserInfo.getModuleId()).orElse(departmentId);
+        if (currentDepartmentId == null){
+            throw new PPMSException("DepartmentId should not be empty");
+        }
+        List<Person> lListPerson = personService.getListPerson(tenantId, currentDepartmentId);
+        Department department = organisationService.getDepartment(tenantId, currentDepartmentId);
+
+        lListPerson.forEach( p ->   updatePersonProjectInfo(tenantId, p, department.getSupervisorTerms()));
     }
     
     @RequestMapping(method=RequestMethod.PUT, value="/api/persons/{id}")
@@ -116,6 +129,51 @@ public class PersonController {
         Person person = personService.getPersonById(getCurrentTenantId(), id);
         return toResource(person, organisation);
     }
+
+    @RequestMapping(method=RequestMethod.GET, value="/api/persons/{id}/projects")
+    public List<ProjectResource> getRelatedProject(@PathVariable String id, @RequestParam(value = "status", required = false) ProjectStatus status) {
+        LoggedUserInfo loggedUserInfo = getLoggedUserInfo();
+        Organisation organisation = organisationService.getOrganisationByTenantId(loggedUserInfo.getTenantId())
+                .orElseThrow(() -> new PPMSException(ErrorCode.ORGANISATION_ID_NOT_FOUND, "Organisation was not found"));
+        Person person = personService.getPersonById(getCurrentTenantId(), id);
+        Person connectedPerson = personService.getPersonByEmail(getCurrentTenantId(), loggedUserInfo.getEmail());
+        List<Project> projects = projectService.getProjectListByPerson(loggedUserInfo.getTenantId(), person.getDepartmentId(),
+                id, person.getPersonfunction(), status);
+     return  projects.stream().map(p -> ProjectPresenter.toResource(p, organisation, connectedPerson.getId(),  isHasRole(Role.MODULE_LEADER)))
+             .collect(Collectors.toList());
+    }
+
+    private void updatePersonProjectInfo(long tenantId, Person person, List<SupervisorTerm> terms){
+        List<Project> projects = projectService.getProjectListByPerson(tenantId, person.getDepartmentId(),
+                person.getId(), person.getPersonfunction(), null);
+
+        int workload = 0;
+        int currentProjects = 0;
+        int previousProjects = 0;
+        if (projects!= null && !projects.isEmpty()){
+            for(Project p : projects){
+                if (p.getStatus() == null || ProjectStatus.CLOSED.equals(p.getStatus())){
+                    previousProjects = previousProjects + 1;
+                }else {
+                    currentProjects++;
+                }
+                if (!person.getPersonfunction().equals(PersonFunction.STUDENT)){
+                    Optional<SupervisorTerm> supervisorTerm = p.getMembers().stream().filter(m -> m.getPersonId().equals(person.getId()))
+                            .findFirst().flatMap(m -> terms.stream().filter(s -> s.getTermId().equals(m.getTermId())).findFirst());
+                    if (supervisorTerm.isPresent()){
+                        workload = workload + supervisorTerm.get().getQuota();
+                    }
+                }
+            }
+        }
+        if (!(person.getWorkload() == workload && person.getCurrentProjects() == currentProjects && person.getPreviousProjects() == previousProjects)){
+            personService.updateProjectInfo(tenantId, person.getId(), workload, currentProjects, previousProjects);
+        }
+
+
+    }
+
+
 
     @RequestMapping(method=RequestMethod.GET, value="/api/persons/current/info")
     public PersonResource getCurrentDetail() {

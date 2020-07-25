@@ -5,9 +5,11 @@ public enum AttachType {
     PROJECT,
     GOAL,
     TASK,
-
     ORGANISATION,
-    PERSON
+    PERSON,
+
+
+    MODULE,
     ;
 
 }

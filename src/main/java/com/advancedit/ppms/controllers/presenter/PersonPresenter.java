@@ -60,6 +60,10 @@ public class PersonPresenter {
         personResource.setLastCvUpdate(person.getLastCvUpdate());
         personResource.setCvFileId(person.getCvFileId());
         personResource.setStartingDateDate(person.getStartingDateDate());
+
+        personResource.setCurrentProjects(person.getCurrentProjects());
+        personResource.setWorkload(person.getWorkload());
+        personResource.setPreviousProjects(person.getPreviousProjects());
         return personResource;
     }
 
