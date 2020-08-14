@@ -47,4 +47,5 @@ public class ProjectResource {
     private boolean extended;
     private boolean edit;
     private Goal nextAction;
+    private FileDescriptor logo;
 }

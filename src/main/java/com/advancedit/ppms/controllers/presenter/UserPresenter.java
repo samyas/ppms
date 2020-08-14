@@ -35,6 +35,7 @@ public class UserPresenter {
         userResource.setRoles(roles);
         userResource.setPermissions(user.getPermissions());
         userResource.setPersonId(person.getId());
+        userResource.setImage(person.getImage());
         if (department != null) userResource.setDepartment(new ShortDepartment(department.getDepartmentId(), department.getName()));
      return userResource;
     }

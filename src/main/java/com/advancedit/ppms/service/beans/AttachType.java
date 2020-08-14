@@ -8,7 +8,7 @@ public enum AttachType {
     ORGANISATION,
     PERSON,
 
-
+    PROJECT_LOGO,
     MODULE,
     ;
 

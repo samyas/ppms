@@ -31,6 +31,8 @@ public interface ProjectCustomRepository {
 
     ProjectStatus getProjectStatus(long tenantId, String projectId);
 
+     FileDescriptor getProjectImage(long tenantId, String projectId);
+
     boolean assignPerson(long tenantId, String projectId, String key, Member member);
 
     boolean unAssignPerson(long tenantId, String projectId, String key, String personId);
@@ -38,6 +40,8 @@ public interface ProjectCustomRepository {
     boolean sign(long tenantId, String projectId, String attribute, String personId);
 
     void addAttachment(long tenantId, String projectId, FileDescriptor fileDescriptor);
+
+    void updateImage(long tenantId,  String projectId,  FileDescriptor fileDescriptor);
 
     void deleteAttachment(long tenantId, String projectId, String fileName);
 

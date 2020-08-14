@@ -17,9 +17,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.BasicQuery;
 import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -68,6 +68,17 @@ public class OrganisationRepositoryImpl implements OrganisationCustomRepository 
 			throw new PPMSException("Unable to set logo");
 		}
 	}
+
+	@Override
+	public FileDescriptor getLogo(long tenantId, String organisationId){
+		Criteria criteria = Criteria.where("id").is(organisationId).and("tenantId").is(tenantId);
+		Query query = new BasicQuery( criteria.getCriteriaObject());
+		query.fields().include("logo");
+		Organisation organisation = Optional.ofNullable(mongoTemplate.findOne(query, Organisation.class))
+				.orElseThrow(() -> new PPMSException("Organisation not found"));
+		return organisation.getLogo();
+	}
+
 
 	@Override
 	public SupervisorTerm addTerm(long tenantId, String organisationId, String departmentId, SupervisorTerm term) {

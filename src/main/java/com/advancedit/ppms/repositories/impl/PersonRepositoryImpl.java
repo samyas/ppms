@@ -7,7 +7,6 @@ import com.advancedit.ppms.models.person.PersonFunction;
 import com.advancedit.ppms.repositories.PersonCustomRepository;
 import com.mongodb.client.result.UpdateResult;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Example;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -16,6 +15,7 @@ import org.springframework.data.mongodb.core.query.BasicQuery;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.util.CollectionUtils;
 
 import java.util.List;
 import java.util.Optional;
@@ -87,6 +87,26 @@ public class PersonRepositoryImpl implements PersonCustomRepository {
 		if (wr.getModifiedCount() != 1){
 			throw new PPMSException("Unable to set image");
 		}
+	}
+
+	@Override
+	public FileDescriptor getImage(long tenantId, String personId){
+		Criteria criteria = Criteria.where("id").is(personId).and("tenantId").is(tenantId);
+		Query query = new BasicQuery( criteria.getCriteriaObject());
+		query.fields().include("image");
+		Person person = Optional.ofNullable(mongoTemplate.findOne(query, Person.class))
+				.orElseThrow(() -> new PPMSException("Person not found"));
+		return person.getImage();
+	}
+
+	@Override
+	public List<Person> findByTenantIdAndPersonIds(long tenantId, List<String> personIds){
+		Criteria criteria = Criteria.where("tenantId").is(tenantId);
+		if (!CollectionUtils.isEmpty(personIds)) {
+			criteria = criteria.and("id").in(personIds);
+		}
+		Query query = new BasicQuery( criteria.getCriteriaObject());
+		return  mongoTemplate.find(query, Person.class);
 	}
 
 	@Override

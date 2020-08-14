@@ -21,8 +21,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
-import static com.advancedit.ppms.service.beans.AttachType.ORGANISATION;
-import static com.advancedit.ppms.service.beans.AttachType.PERSON;
+import static com.advancedit.ppms.service.beans.AttachType.*;
 import static com.advancedit.ppms.utils.SecurityUtils.getCurrentTenantId;
 
 @RestController
@@ -62,7 +61,7 @@ public class FileController {
 
 		String fileKey = attachFileService.generateFileKey(getCurrentTenantId(), type, id, fileName);
 
-		String url = documentManagementService.uploadFile(fileKey, file, Arrays.asList(ORGANISATION, PERSON).contains(type));
+		String url = documentManagementService.uploadFile(fileKey, file, Arrays.asList(ORGANISATION, PROJECT_LOGO, PERSON).contains(type));
 
 		attachFileService.attach(getCurrentTenantId(), type, id, fileName, fileKey, url, mimeType);
 

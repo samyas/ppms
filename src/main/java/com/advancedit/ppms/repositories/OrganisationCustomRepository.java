@@ -22,6 +22,8 @@ public interface OrganisationCustomRepository {
 
     Optional<Sector> getSector(long tenantId, String organisationId, String departmentId, String sectorId);
 
+    FileDescriptor getLogo(long tenantId,  String organisationId);
+
     void addLogo(long tenantId,  String organisationId,  FileDescriptor fileDescriptor);
 
     SupervisorTerm addTerm(long tenantId, String organisationId, String departmentId, SupervisorTerm term);

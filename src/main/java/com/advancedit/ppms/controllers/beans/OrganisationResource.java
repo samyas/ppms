@@ -1,5 +1,6 @@
 package com.advancedit.ppms.controllers.beans;
 
+import com.advancedit.ppms.models.files.FileDescriptor;
 import com.advancedit.ppms.models.organisation.Address;
 import com.advancedit.ppms.models.organisation.Department;
 import com.advancedit.ppms.models.organisation.OrganisationType;
@@ -28,6 +29,7 @@ public class OrganisationResource {
     private String contactEmail;
     private String logoId;
     private ShortPerson responsible;
+    private FileDescriptor logo;
     private OrganisationType type;
     private boolean isExtended;
     private List<Department> departments = new ArrayList<>();

@@ -1,5 +1,6 @@
 package com.advancedit.ppms.controllers.beans;
 
+import com.advancedit.ppms.models.files.FileDescriptor;
 import com.advancedit.ppms.models.organisation.ShortDepartment;
 import com.advancedit.ppms.models.user.Permission;
 import com.advancedit.ppms.models.user.Role;
@@ -35,5 +36,6 @@ public class UserResource {
 	private Set<Permission> permissions;
 	private String personId;
 	private ShortDepartment department;
+	private FileDescriptor image;
 	
 }

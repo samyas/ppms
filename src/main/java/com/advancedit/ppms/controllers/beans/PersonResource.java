@@ -1,5 +1,6 @@
 package com.advancedit.ppms.controllers.beans;
 
+import com.advancedit.ppms.models.files.FileDescriptor;
 import com.advancedit.ppms.models.organisation.ShortDepartment;
 import com.advancedit.ppms.models.person.PersonFunction;
 import com.advancedit.ppms.models.person.Skill;
@@ -43,6 +44,7 @@ public class PersonResource {
     private List<ProjectResource> projects;
 
 
+    private FileDescriptor image;
     private  int workload;
     private int currentProjects;
     private int previousProjects;

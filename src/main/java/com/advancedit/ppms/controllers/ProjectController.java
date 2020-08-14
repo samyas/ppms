@@ -16,9 +16,8 @@ import com.advancedit.ppms.models.person.ShortPerson;
 import com.advancedit.ppms.models.project.*;
 import com.advancedit.ppms.models.sequences.DatabaseSequence;
 import com.advancedit.ppms.models.user.Role;
-import com.advancedit.ppms.service.DocumentManagementService;
-import com.advancedit.ppms.service.OrganisationService;
-import com.advancedit.ppms.service.PersonService;
+import com.advancedit.ppms.service.*;
+import com.advancedit.ppms.service.beans.AttachType;
 import com.advancedit.ppms.utils.LoggedUserInfo;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.http.entity.ContentType;
@@ -31,7 +30,6 @@ import org.springframework.web.bind.annotation.*;
 
 import com.advancedit.ppms.controllers.beans.Apply;
 import com.advancedit.ppms.controllers.beans.Assignment;
-import com.advancedit.ppms.service.ProjectService;
 import org.springframework.web.multipart.MultipartFile;
 
 import static com.advancedit.ppms.controllers.presenter.ProjectPresenter.toResource;
@@ -55,6 +53,9 @@ public class ProjectController {
     @Autowired
     DocumentManagementService documentManagementService;
 
+    @Autowired
+    AttachFileService attachService;
+
     @RequestMapping(method=RequestMethod.GET, value="/api/projects")
     public List<Project> all() {
         return  projectService.getAllProjects(getCurrentTenantId());
@@ -70,7 +71,9 @@ public class ProjectController {
                .orElseThrow(() -> new PPMSException(ErrorCode.ORGANISATION_ID_NOT_FOUND, "Organisation was not found"));
         Page<Project> pagedListProject = projectService.getPagedListProject(getCurrentTenantId(), page, size, person.getDepartmentId(), status, name);
 
-        List<ProjectResource> collect = pagedListProject.stream().map(p -> toResource(p, organisation, null, false)).collect(Collectors.toList());
+       List<String> allPersonIds =  pagedListProject.stream().map(this::projectRelatedPersons).flatMap(Collection::stream).collect(Collectors.toList());
+        List<Person> personList = personService.getAllPersonsByIds(loggedUserInfo.getTenantId(), allPersonIds);
+        List<ProjectResource> collect = pagedListProject.stream().map(p -> toResource(p, organisation, null, false, personList)).collect(Collectors.toList());
         return new PageImpl<>(collect, pagedListProject.getPageable(), pagedListProject.getTotalElements());
     }
 
@@ -85,8 +88,18 @@ public class ProjectController {
         Organisation organisation = organisationService.getOrganisationByTenantId(loggedUserInfo.getTenantId())
                 .orElseThrow(() -> new PPMSException(ErrorCode.ORGANISATION_ID_NOT_FOUND, "Organisation was not found"));
         Page<Project> pagedListProject = projectService.getPagedListProjectWithGoal(getCurrentTenantId(), page, size, person.getDepartmentId(), status, name);
-        List<ProjectResource> collect = pagedListProject.stream().map(p -> toResource(p, organisation, null, true)).collect(Collectors.toList());
+        List<String> allPersonIds =  pagedListProject.stream().map(this::projectRelatedPersons).flatMap(Collection::stream).collect(Collectors.toList());
+        List<Person> personList = personService.getAllPersonsByIds(loggedUserInfo.getTenantId(), allPersonIds);
+        List<ProjectResource> collect = pagedListProject.stream().map(p -> toResource(p, organisation, null, true, personList)).collect(Collectors.toList());
         return new PageImpl<>(collect, pagedListProject.getPageable(), pagedListProject.getTotalElements());
+    }
+
+    private List<String> projectRelatedPersons(Project project){
+        List<String> projectPersonIds = new ArrayList<>();
+        Optional.ofNullable(project.getCreator()).map(ShortPerson::getPersonId).ifPresent(projectPersonIds::add);
+        project.getTeam().stream().map(Member::getPersonId).forEach(projectPersonIds::add);
+        project.getMembers().stream().map(Member::getPersonId).forEach(projectPersonIds::add);
+        return projectPersonIds;
     }
 
     //Assign Process
@@ -214,7 +227,7 @@ public class ProjectController {
     }
 
     @RequestMapping(method=RequestMethod.POST, value="/api/projects")
-    public String save(@RequestBody Project project) {
+    public String addProject(@RequestBody Project project) {
         LoggedUserInfo loggedUserInfo = getLoggedUserInfo();
         Person person = personService.getPersonByEmail(loggedUserInfo.getTenantId(), loggedUserInfo.getEmail());
         if (isHasAnyRole( Role.MODULE_LEADER, Role.STAFF, Role.STUDENT)) isSameModule(project.getDepartmentId());
@@ -225,7 +238,28 @@ public class ProjectController {
     	return projectService.addProject(getCurrentTenantId(), project, department, person).getProjectId();
     }
 
-    @RequestMapping(method=RequestMethod.PUT, value="/api/projects/{id}")
+    @RequestMapping(method=RequestMethod.POST, value="/api/projects/with-upload", consumes = {"multipart/form-data"})
+    public String addProjectWithLogo(@RequestPart("project") Project project,
+                                  @RequestPart("image") MultipartFile image) {
+
+        LoggedUserInfo loggedUserInfo = getLoggedUserInfo();
+        Person person = personService.getPersonByEmail(loggedUserInfo.getTenantId(), loggedUserInfo.getEmail());
+        if (isHasAnyRole( Role.MODULE_LEADER, Role.STAFF, Role.STUDENT)) isSameModule(project.getDepartmentId());
+        Department department = organisationService.getDepartment(getCurrentTenantId() , project.getDepartmentId());
+        if (Boolean.TRUE.equals(department.getStudentCannotCreateProject())){
+            throw new PPMSException("Student cannot create project in this module");
+        }
+
+        String projectId = projectService.addProject(getCurrentTenantId(), project, department, person).getProjectId();
+        if (image != null) {
+            FileDescriptor fileDescriptor = storeImage(loggedUserInfo.getTenantId(), projectId, image);
+            this.attachService.attach(getCurrentTenantId(), AttachType.PROJECT_LOGO, projectId,
+                    fileDescriptor.getFileName(), fileDescriptor.getKey(), fileDescriptor.getUrl(), fileDescriptor.getContentType());
+        }
+        return projectId;
+    }
+
+        @RequestMapping(method=RequestMethod.PUT, value="/api/projects/{id}")
     public String update(@PathVariable String id, @RequestBody Project project) {
     	return projectService.updateProject(getCurrentTenantId(), id, project);
     }
@@ -242,7 +276,9 @@ public class ProjectController {
         if (person.getDepartmentId()!= null && !project.getDepartmentId().equals(person.getDepartmentId()))
             throw new PPMSException(ErrorCode.PROJECT_ID_NOT_FOUND, "Project not found");
         boolean isAdmin = isHasAnyRole(Role.ADMIN_CREATOR, Role.SUPER_ADMIN, Role.MODULE_LEADER);
-        return toResource(project, organisation, person.getId(), isAdmin);
+        List<String> allPersonIds =  projectRelatedPersons(project);
+        List<Person> personList = personService.getAllPersonsByIds(loggedUserInfo.getTenantId(), allPersonIds);
+        return toResource(project, organisation, person.getId(), isAdmin, personList);
     }
 
 
@@ -276,6 +312,14 @@ public class ProjectController {
         String fileName = file.getOriginalFilename();
         String fileKey = String.format("ORG-%d/projects/%s/%s/%s", tenantId, projectId, type, fileName);
         String url = documentManagementService.uploadFile(fileKey, file, false);
+        return new FileDescriptor(fileName, fileKey, url, mimeType);
+    }
+
+    private FileDescriptor storeImage(long tenantId, String projectId, MultipartFile file){
+        String mimeType = file.getContentType();
+        String fileName = file.getOriginalFilename();
+        String fileKey = String.format("ORG-%d/projects/%s/logo/%s", tenantId, projectId, fileName);
+        String url = documentManagementService.uploadFile(fileKey, file, true);
         return new FileDescriptor(fileName, fileKey, url, mimeType);
     }
 

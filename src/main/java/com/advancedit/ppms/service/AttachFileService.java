@@ -5,6 +5,7 @@ import com.advancedit.ppms.models.files.FileDescriptor;
 import com.advancedit.ppms.models.files.ModuleFile;
 import com.advancedit.ppms.models.organisation.Action;
 import com.advancedit.ppms.models.organisation.Department;
+import com.advancedit.ppms.models.person.Person;
 import com.advancedit.ppms.repositories.OrganisationRepository;
 import com.advancedit.ppms.repositories.PersonRepository;
 import com.advancedit.ppms.repositories.ProjectRepository;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static java.util.Arrays.asList;
@@ -35,6 +37,9 @@ public class AttachFileService {
     @Autowired
 	private ModuleFileRepository moduleFileRepository;
 
+	@Autowired
+	DocumentManagementService documentManagementService;
+
 	public String generateFileKey(long tenantId, AttachType attachType, String identifier, String fileName){
 		String organisationFolder = String.format("ORG-%d/", tenantId);
 		List<String> ids = asList(identifier.split((":")));
@@ -42,6 +47,9 @@ public class AttachFileService {
 		switch (attachType){
 			case PROJECT:
 				relativePath = String.format("projects/%s/%s", ids.get(0), fileName);
+				break;
+			case PROJECT_LOGO:
+				relativePath = String.format("projects/%s/logo/%s", ids.get(0), fileName);
 				break;
 			case GOAL:
 				relativePath = String.format("projects/%s/goals/%s", ids.get(0), fileName);
@@ -68,6 +76,10 @@ public class AttachFileService {
 			case PROJECT:
 				projectRepository.addAttachment(tenantId, ids.get(0), new FileDescriptor(fileName, key, url, contentType));
 				break;
+			case PROJECT_LOGO:
+				 Optional.ofNullable(projectRepository.getProjectImage(tenantId, ids.get(0))).ifPresent(f -> 	documentManagementService.deleteFile(f.getKey()));
+				projectRepository.updateImage(tenantId, ids.get(0), new FileDescriptor(fileName, key, url, contentType));
+				break;
 			case GOAL:
 				projectRepository.addAttachment(tenantId, ids.get(0), ids.get(1), new FileDescriptor(fileName, key, url, contentType));
 				break;
@@ -75,9 +87,11 @@ public class AttachFileService {
 				projectRepository.addAttachment(tenantId, ids.get(0), ids.get(1), ids.get(2), new FileDescriptor(fileName, key, url, contentType));
 				break;
 			case ORGANISATION:
+				 Optional.ofNullable(organisationRepository.getLogo(tenantId, ids.get(0))).ifPresent( f -> documentManagementService.deleteFile(f.getKey()));
 				organisationRepository.addLogo(tenantId, ids.get(0), new FileDescriptor(fileName, key, url, contentType));
 				break;
 			case PERSON:
+				Optional.ofNullable(personRepository.getImage(tenantId, ids.get(0))).ifPresent( f -> documentManagementService.deleteFile(f.getKey()));
 				personRepository.updateImage(tenantId, ids.get(0), new FileDescriptor(fileName, key, url, contentType));
 				break;
 			case MODULE:

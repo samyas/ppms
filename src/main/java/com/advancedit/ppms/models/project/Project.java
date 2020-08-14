@@ -45,6 +45,7 @@ public class Project {
 	private List<String> organisationsId = new ArrayList<>();
 	private List<FileDescriptor> attachments = new ArrayList<>();
 	private long tenantId;
+	private FileDescriptor image;
 
 	//TODO to remove
 	private ShortPerson supervisor;

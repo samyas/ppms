@@ -49,6 +49,10 @@ public class PersonService {
     public List<Person> getAllPersons(long tenantId){
     	return personRepository.findByTenantId(tenantId);
     }
+
+	public List<Person> getAllPersonsByIds(long tenantId, List<String> personIds){
+		return personRepository.findByTenantIdAndPersonIds(tenantId, personIds);
+	}
     
 	public Page<Person> getPagedListPerson(long tenantId, int page, int size, String departmentId, List<PersonFunction> functions, String status, String name) {
 		Pageable pageableRequest =  PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "name"));

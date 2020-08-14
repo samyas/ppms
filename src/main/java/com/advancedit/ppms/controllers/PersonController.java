@@ -10,6 +10,8 @@ import com.advancedit.ppms.models.organisation.Organisation;
 import com.advancedit.ppms.models.organisation.SupervisorTerm;
 import com.advancedit.ppms.models.person.Person;
 import com.advancedit.ppms.models.person.PersonFunction;
+import com.advancedit.ppms.models.person.ShortPerson;
+import com.advancedit.ppms.models.project.Member;
 import com.advancedit.ppms.models.project.Project;
 import com.advancedit.ppms.models.project.ProjectStatus;
 import com.advancedit.ppms.models.user.Role;
@@ -24,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpServletRequest;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -139,8 +142,18 @@ public class PersonController {
         Person connectedPerson = personService.getPersonByEmail(getCurrentTenantId(), loggedUserInfo.getEmail());
         List<Project> projects = projectService.getProjectListByPerson(loggedUserInfo.getTenantId(), person.getDepartmentId(),
                 id, person.getPersonfunction(), status);
-     return  projects.stream().map(p -> ProjectPresenter.toResource(p, organisation, connectedPerson.getId(),  isHasRole(Role.MODULE_LEADER)))
+        List<String> allPersonIds =  projects.stream().map(this::projectRelatedPersons).flatMap(Collection::stream).collect(Collectors.toList());
+        List<Person> personList = personService.getAllPersonsByIds(loggedUserInfo.getTenantId(), allPersonIds);
+        return  projects.stream().map(p -> ProjectPresenter.toResource(p, organisation, connectedPerson.getId(),  isHasRole(Role.MODULE_LEADER), personList))
              .collect(Collectors.toList());
+    }
+
+    private List<String> projectRelatedPersons(Project project){
+        List<String> projectPersonIds = new ArrayList<>();
+        Optional.ofNullable(project.getCreator()).map(ShortPerson::getPersonId).ifPresent(projectPersonIds::add);
+        project.getTeam().stream().map(Member::getPersonId).forEach(projectPersonIds::add);
+        project.getMembers().stream().map(Member::getPersonId).forEach(projectPersonIds::add);
+        return projectPersonIds;
     }
 
     private void updatePersonProjectInfo(long tenantId, Person person, List<SupervisorTerm> terms){

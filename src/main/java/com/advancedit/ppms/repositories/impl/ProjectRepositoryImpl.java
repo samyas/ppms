@@ -3,6 +3,7 @@ package com.advancedit.ppms.repositories.impl;
 import java.util.*;
 
 import com.advancedit.ppms.models.files.FileDescriptor;
+import com.advancedit.ppms.models.person.Person;
 import com.advancedit.ppms.models.person.ShortPerson;
 import com.advancedit.ppms.models.project.*;
 import com.advancedit.ppms.repositories.ProjectCustomRepository;
@@ -140,6 +141,16 @@ public class ProjectRepositoryImpl implements ProjectCustomRepository {
 	}
 
 	@Override
+	public FileDescriptor getProjectImage(long tenantId, String projectId){
+		Criteria criteria = Criteria.where("projectId").is(projectId).and("tenantId").is(tenantId);
+		Query query = new BasicQuery( criteria.getCriteriaObject());
+		query.fields().include("image");
+		Project project = Optional.ofNullable(mongoTemplate.findOne(query, Project.class))
+				.orElseThrow(() -> new PPMSException("Project not found"));
+		return project.getImage();
+	}
+
+	@Override
 	public String updateProjectNameAndDescriptionAndKeywords(long tenantId, String projectId, Project project){
 		Criteria findProjectCriteria = Criteria.where("projectId").is(projectId).and("tenantId").is(tenantId);
 		final Update update = new Update().set("name", project.getName()).set("shortDescription", project.getShortDescription())
@@ -212,6 +223,17 @@ public class ProjectRepositoryImpl implements ProjectCustomRepository {
 		final UpdateResult wr = mongoTemplate.updateFirst(query, update, Project.class);
 		if (wr.getModifiedCount() != 1){
 			throw new PPMSException("Unable to add attachment to project");
+		}
+	}
+
+	@Override
+	public void updateImage(long tenantId,  String projectId,  FileDescriptor fileDescriptor) {
+		final BasicQuery query = new BasicQuery(Criteria.where("projectId").is(projectId).and("tenantId").is(tenantId)
+				.getCriteriaObject());
+		final Update update = new Update().set("image", fileDescriptor);
+		final UpdateResult wr = mongoTemplate.updateFirst(query, update, Project.class);
+		if (wr.getModifiedCount() != 1){
+			throw new PPMSException("Unable to set image");
 		}
 	}
 
