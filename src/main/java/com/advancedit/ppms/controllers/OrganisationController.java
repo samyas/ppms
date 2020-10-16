@@ -95,7 +95,16 @@ public class OrganisationController {
     
     @RequestMapping(method=RequestMethod.GET, value="/api/organisations/{organisationId}/departments/{departmentId}")
     public Department getDepartment(@PathVariable String organisationId, @PathVariable String departmentId) {
-        return organisationService.getDepartment(getCurrentTenantId(), organisationId, departmentId);
+
+        Department department = organisationService.getDepartment(getCurrentTenantId(), organisationId, departmentId);
+        if (department.getResponsible() != null){
+            Person person = personService.getPersonById(getCurrentTenantId(), department.getResponsible().getPersonId());
+            if (person != null && person.getImage() != null){
+                department.getResponsible().setImageId(person.getImage().getUrl());
+            }
+        }
+        return department;
+
     }
     
     @RequestMapping(method=RequestMethod.DELETE, value="/api/organisations/{organisationId}/departments/{departmentId}")

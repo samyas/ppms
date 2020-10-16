@@ -9,7 +9,7 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 import com.advancedit.ppms.models.user.User;
 import org.springframework.data.mongodb.repository.Query;
 
-public interface UserRepository extends MongoRepository<User, String> {
+public interface UserRepository extends MongoRepository<User, String>, UserCustomRepository {
 
 	User findByEmail(String email);
 

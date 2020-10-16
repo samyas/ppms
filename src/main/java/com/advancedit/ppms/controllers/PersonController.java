@@ -15,6 +15,7 @@ import com.advancedit.ppms.models.project.Member;
 import com.advancedit.ppms.models.project.Project;
 import com.advancedit.ppms.models.project.ProjectStatus;
 import com.advancedit.ppms.models.user.Role;
+import com.advancedit.ppms.models.user.User;
 import com.advancedit.ppms.models.user.VerificationToken;
 import com.advancedit.ppms.service.*;
 import com.advancedit.ppms.utils.LoggedUserInfo;
@@ -53,6 +54,9 @@ public class PersonController {
     @Autowired
     ProjectService projectService;
 
+    @Autowired
+    UserService userService;
+
 
     @RequestMapping(method=RequestMethod.GET, value="/api/persons")
     public List<Person> all() {
@@ -80,9 +84,16 @@ public class PersonController {
                 status, name);
         Organisation organisation = organisationService.getOrganisationByTenantId(loggedUserInfo.getTenantId())
                 .orElseThrow(() -> new PPMSException(ErrorCode.ORGANISATION_ID_NOT_FOUND, "Organisation was not found"));
-        List<PersonResource> collect = pagedListPerson.stream().map(p -> toResource(p, organisation)).collect(Collectors.toList());
+
+        List<User> relatedUsers = userService.getUserByTeantIdAndEmails(loggedUserInfo.getTenantId(), pagedListPerson.stream().map(Person::getEmail).collect(Collectors.toList()));
+
+        List<PersonResource> collect = pagedListPerson.stream().map(p -> toResource(p, organisation, findRelatedUserByEmail(relatedUsers, p.getEmail()))).collect(Collectors.toList());
         return new PageImpl<>(collect, pagedListPerson.getPageable(), pagedListPerson.getTotalElements());
 
+    }
+
+    private Optional<User> findRelatedUserByEmail(List<User> users, String email){
+        return users.stream().filter(u -> u.getEmail().equals(email)).findFirst();
     }
 
     @RequestMapping(method=RequestMethod.POST, value="/api/persons")
@@ -123,6 +134,16 @@ public class PersonController {
          personService.validatePerson(getCurrentTenantId(), personId);
     }
 
+
+    @RequestMapping(method=RequestMethod.GET, value="/api/persons/{personId}/invitation")
+    public String sendInvitation(@PathVariable String personId, HttpServletRequest request) throws MalformedURLException {
+        hasAnyRole(Role.SUPER_ADMIN, Role.ADMIN_CREATOR, Role.MODULE_LEADER);
+
+        Person p = personService.getPersonById(getCurrentTenantId(), personId);
+        sendJoinInvitation(getCurrentTenantId(), p, organisationService.getOrganisationByTenantId(getCurrentTenantId()).get()
+                , request.getHeader("Origin"));
+        return p.getId();
+    }
 
     @RequestMapping(method=RequestMethod.GET, value="/api/persons/{id}")
     public PersonResource getDetail(@PathVariable String id) {

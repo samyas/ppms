@@ -7,6 +7,7 @@ import com.advancedit.ppms.models.organisation.ShortDepartment;
 import com.advancedit.ppms.models.person.Person;
 import com.advancedit.ppms.models.person.PersonFunction;
 import com.advancedit.ppms.models.person.ShortPerson;
+import com.advancedit.ppms.models.user.User;
 
 import java.util.Optional;
 
@@ -15,6 +16,11 @@ import static com.advancedit.ppms.models.person.PersonFunction.isStaff;
 public class PersonPresenter {
 
 
+    public static PersonResource toResource(Person person, Organisation organisation, Optional<User> relatedUser){
+        PersonResource resource = toResource(person, organisation);
+        resource.setValid(relatedUser.map(User::isEnabled).orElse(false));
+        return resource;
+    }
     public static PersonResource toResource(Person person, Organisation organisation){
        Optional<Department> department = organisation.getDepartments()
                .stream().filter(d -> d.getDepartmentId().equals(person.getDepartmentId())).findFirst();

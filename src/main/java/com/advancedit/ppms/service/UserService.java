@@ -64,6 +64,10 @@ public class UserService {
 		return userRepository.findByEmail(email);
 	}
 
+	public List<User> getUserByTeantIdAndEmails(long tenanId, List<String> emails){
+		return userRepository.findByEmails(tenanId, emails);
+	}
+
 
     public User getUserById(String id){
     	return userRepository.findById(id).orElseThrow(
