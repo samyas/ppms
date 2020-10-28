@@ -55,7 +55,10 @@ public interface ProjectCustomRepository {
 
     Goal addGoal(long tenantId, String projectId, Goal goal);
 
-	String updateGoal(long tenantId, String projectId, String goalId, Goal goal);
+    Apply addApply(long tenantId, String projectId, Apply apply);
+
+
+    String updateGoal(long tenantId, String projectId, String goalId, Goal goal);
 
     void deleteGoal(long tenantId, String projectId, String goalId);
 

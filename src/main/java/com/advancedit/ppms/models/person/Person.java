@@ -31,7 +31,8 @@ public class Person {
 	private long tenantId;
 	private FileDescriptor image;
 	private String shortDescription;
-
+	private String identifier;
+	private String description;
 
 	//@NotNull
 	private String job;

@@ -62,6 +62,8 @@ public class PersonPresenter {
         personResource.setJobAddress(person.getJobAddress());
         personResource.setCertifications(person.getCertifications());
         personResource.setSkills(person.getSkills());
+        personResource.setIdentifier(person.getIdentifier());
+        personResource.setDescription(person.getDescription());
         personResource.setLevel(person.getLevel());
         personResource.setLastCvUpdate(person.getLastCvUpdate());
         personResource.setCvFileId(person.getCvFileId());

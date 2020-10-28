@@ -3,6 +3,7 @@ package com.advancedit.ppms.controllers.beans;
 import com.advancedit.ppms.models.files.FileDescriptor;
 import com.advancedit.ppms.models.organisation.ShortDepartment;
 import com.advancedit.ppms.models.person.ShortPerson;
+import com.advancedit.ppms.models.project.Apply;
 import com.advancedit.ppms.models.project.Goal;
 import com.advancedit.ppms.models.project.Member;
 import lombok.Data;

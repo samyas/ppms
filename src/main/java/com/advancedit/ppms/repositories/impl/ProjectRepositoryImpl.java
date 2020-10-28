@@ -270,6 +270,20 @@ public class ProjectRepositoryImpl implements ProjectCustomRepository {
 		return goal;
 	}
 
+
+	@Override
+	public Apply addApply(long tenantId, String projectId, Apply apply){
+		// the query object
+		Criteria findProjectCriteria = Criteria.where("projectId").is(projectId).and("tenantId").is(tenantId);
+		final Update update = new Update().addToSet("applies", apply);
+		final UpdateResult wr = mongoTemplate.updateFirst(new BasicQuery(findProjectCriteria.getCriteriaObject()), update, Project.class);
+		if (wr.getModifiedCount() != 1){
+			throw new PPMSException("Unable to add apply");
+		}
+		return apply;
+	}
+
+
 	@Override
 	public String updateGoal(long tenantId, String projectId, String goalId, Goal goal) {
 		Criteria findProjectCriteria = Criteria.where("projectId").is(projectId).and("tenantId").is(tenantId);

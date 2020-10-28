@@ -34,6 +34,8 @@ public class PersonResource {
     private String homeAddress;
     private String jobAddress;
     private String certifications;
+    private String description;
+    private String identifier;
     private List<Skill> skills;
     private String level;
     @DateTimeFormat(style = "M-")

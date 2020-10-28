@@ -116,6 +116,7 @@ public class OrganisationRepositoryImpl implements OrganisationCustomRepository 
 						.append("departments.$[i].supervisorTerms.$[j].name", term.getName())
 						.append("departments.$[i].supervisorTerms.$[j].description", term.getDescription())
 						.append("departments.$[i].supervisorTerms.$[j].quota", term.getQuota())
+						.append("departments.$[i].supervisorTerms.$[j].workload", term.getWorkload())
 						.append("departments.$[i].supervisorTerms.$[j].mandatoryBeforeStart", term.getMandatoryBeforeStart())
 						.append("departments.$[i].supervisorTerms.$[j].order", term.getOrder())
 				),

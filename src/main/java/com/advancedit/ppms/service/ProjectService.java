@@ -1,6 +1,6 @@
 package com.advancedit.ppms.service;
 
-import com.advancedit.ppms.controllers.beans.Apply;
+import com.advancedit.ppms.models.project.Apply;
 import com.advancedit.ppms.controllers.beans.Assignment;
 import com.advancedit.ppms.exceptions.ErrorCode;
 import com.advancedit.ppms.exceptions.PPMSException;
@@ -24,6 +24,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -33,11 +35,9 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.advancedit.ppms.models.project.ProjectStatus.*;
-import static com.advancedit.ppms.utils.SecurityUtils.getCurrentTenantId;
 import static com.advancedit.ppms.utils.SecurityUtils.isHasAnyRole;
 import static java.util.Arrays.asList;
 import static org.apache.commons.lang3.StringUtils.isBlank;
-import static org.apache.commons.lang3.StringUtils.isEmpty;
 
 @Service
 public class ProjectService {
@@ -55,6 +55,9 @@ public class ProjectService {
 
 	@Autowired
 	private FileStorageRepository fileStorageRepository;
+
+	@Autowired
+	private DocumentManagementService documentManagementService;
 
 	/***************************** PROJECTS***********************************/
 
@@ -157,14 +160,23 @@ public class ProjectService {
 
 	}
 
-	public void delete(long tenantId, String id) {
+	public void delete(long tenantId, String id, String personCreatorId) {
 		checkIfProjectExist(tenantId, id);
-		projectRepository.deleteById(id);
+		Project project = getProjectsById(tenantId, personCreatorId);
+		if (!project.getStatus().equals(PROPOSAL)){
+			throw new PPMSException(String.format("Project cannot deleted because status is different from '%s'.", PROPOSAL.getLabel()));
+		}
+		if (!project.getCreator().getPersonId().equals(personCreatorId)){
+			throw new PPMSException("Only the owner of the project can delete the project");
+		}
+		Optional.ofNullable(project.getImage()).map(FileDescriptor::getKey).ifPresent(key -> documentManagementService.deleteFile(key));
+		Optional.ofNullable(project.getAttachments()).ifPresent(ats -> ats.stream().map(FileDescriptor::getKey).forEach(key -> documentManagementService.deleteFile(key)));
+        Optional.ofNullable(project.getApplies()).ifPresent(aps -> aps.stream().map(Apply::getFiles).flatMap(Collection::stream)
+                .map(FileDescriptor::getKey).forEach(key -> documentManagementService.deleteFile(key)));
+
+        projectRepository.deleteById(id);
 	}
-	
-	public void deleteAll() {
-		projectRepository.deleteAll();
-	}
+
 
 	public List<Project> getProjectListByPerson(long tenantId, String departmentId,
 												String personId, PersonFunction personFunction, ProjectStatus status) {
@@ -182,6 +194,7 @@ public class ProjectService {
 	public boolean assignSupervisor(long tenantId, String projectId, String emailUser,
 			String personIdToAssign, SupervisorTerm term, boolean isModelLeader) {
 		Project project = projectRepository.getProjectWithoutGoals(tenantId, projectId);
+
 		Person person = getPerson(tenantId, personIdToAssign);
 		if (!PersonFunction.isStaff(person.getPersonfunction())){
 			throw new PPMSException(String.format("%s %s is not a staff member", person.getFirstName(), person.getLastName()));
@@ -191,9 +204,23 @@ public class ProjectService {
 			if (!project.getStatus().canAssignUnassign()){
 				throw new PPMSException(ErrorCode.PROJECT_ASSIGN_NOT_ALLOWED, "Project Assign not allowed");
 			}
-			if (term.getOrder() == 1 && !person.getEmail().equals(emailUser)){
-				throw new PPMSException(String.format(" Only Model leader can perform this operation or Staff can assign him self for %s", term.getName()));
-			}
+			Person personAction = personRepository.findByTenantIdAndEmail(tenantId, emailUser);
+			if (term.getOrder() == 1 && !project.getCreator().getPersonId().equals(personAction.getId())){
+				throw new PPMSException(String.format(" Only Module leader or project creator can perform this operation or Staff can assign him self for %s", term.getName()));
+			}else if(term.getOrder() != 1){
+			  SupervisorTerm firstSupervisor =  organisationRepository.getDepartment(tenantId, project.getDepartmentId())
+                        .map(Department::getSupervisorTerms).flatMap(ts -> ts.stream().filter(t -> t.getOrder() == 1).findFirst())
+                         .orElseThrow(() -> new PPMSException("Supervisor id not found"));
+              Member firstSupervisorMember =  project.getMembers()
+                      .stream().filter(m -> m.getTermId().equals(firstSupervisor.getTermId())).findFirst()
+                .orElseThrow(() -> new PPMSException(String.format("%s is not assigned yet", firstSupervisor.getName())));
+              if(!firstSupervisorMember.getPersonId().equals(personAction.getId())){
+                  throw new PPMSException(String.format("Only %s can assign other team member or module leader", firstSupervisor.getName()));
+              }
+              if(!Boolean.TRUE.equals(firstSupervisorMember.getSigned())){
+                  throw new PPMSException("You should sign first");
+              }
+            }
 		}
 
 		Optional<Member> existingMember = project.getMembers().stream().filter(m -> m.getTermId().equals(term.getTermId())).findFirst();
@@ -208,7 +235,7 @@ public class ProjectService {
 		Member member = createMemberFromPersonAndTerm(person, term, false);
 		boolean assigned =  projectRepository.assignPerson(tenantId, projectId, "members", member);
 		if (assigned){
-            int workload = person.getWorkload()  + term.getQuota();
+            int workload = person.getWorkload()  + term.getWorkload();
             int currentProject = person.getCurrentProjects() + 1;
             personRepository.updateProjectInfo(tenantId, personIdToAssign,workload, currentProject, person.getPreviousProjects());
         }
@@ -216,7 +243,8 @@ public class ProjectService {
 
 	}
 	public boolean assignStudent(long tenantId, String projectId,
-									String personIdToAssign, int maxTeamNumber, boolean isModelLeader) {
+									String personIdToAssign, int maxTeamNumber,
+                                 String emailUser, boolean isModelLeader) {
 		Project project = projectRepository.getProjectWithoutGoals(tenantId, projectId);
 		Person person = getPerson(tenantId, personIdToAssign);
 		if (!person.getPersonfunction().equals(PersonFunction.STUDENT)){
@@ -227,6 +255,19 @@ public class ProjectService {
 			if (!project.getStatus().canAssignUnassign()){
 				throw new PPMSException(ErrorCode.PROJECT_ASSIGN_NOT_ALLOWED, "Project Assign not allowed");
 			}
+            Person personAction = personRepository.findByTenantIdAndEmail(tenantId, emailUser);
+            SupervisorTerm firstSupervisor =  organisationRepository.getDepartment(tenantId, project.getDepartmentId())
+                    .map(Department::getSupervisorTerms).flatMap(ts -> ts.stream().filter(t -> t.getOrder() == 1).findFirst())
+                    .orElseThrow(() -> new PPMSException("Supervisor id not found"));
+            Member firstSupervisorMember =  project.getMembers()
+                    .stream().filter(m -> m.getTermId().equals(firstSupervisor.getTermId())).findFirst()
+                    .orElseThrow(() -> new PPMSException(String.format("%s is not assigned yet", firstSupervisor.getName())));
+            if(!firstSupervisorMember.getPersonId().equals(personAction.getId())){
+                throw new PPMSException(String.format("Only %s can assign other team member or module leader", firstSupervisor.getName()));
+            }
+            if(!Boolean.TRUE.equals(firstSupervisorMember.getSigned())){
+                throw new PPMSException("You should sign first");
+            }
 		}
 
 		Optional<Member> alreadyAssigned = project.getTeam().stream().filter(m -> m.getPersonId().equals(person.getId())).findFirst();
@@ -247,17 +288,33 @@ public class ProjectService {
 	}
 
 
-	public boolean unAssign(long tenantId, String projectId, String personIdToUnassign, String position, SupervisorTerm term ,  boolean isModelLeader) {
-		ProjectStatus projectStatus = projectRepository.getProjectStatus(tenantId, projectId);
-		if (!projectStatus.canAssignUnassign()){
+	public boolean unAssign(long tenantId, String projectId, String personIdToUnassign, String position, SupervisorTerm term ,
+                           String emailUser, boolean isModelLeader) {
+		Project project = projectRepository.getProjectWithoutGoals(tenantId, projectId);;
+		if (!project.getStatus().canAssignUnassign()){
 			throw new PPMSException(ErrorCode.PROJECT_ASSIGN_NOT_ALLOWED, "Project Assign not allowed");
 		}
+		if (!isModelLeader){
+            Person personAction = personRepository.findByTenantIdAndEmail(tenantId, emailUser);
+            SupervisorTerm firstSupervisor =  organisationRepository.getDepartment(tenantId, project.getDepartmentId())
+                    .map(Department::getSupervisorTerms).flatMap(ts -> ts.stream().filter(t -> t.getOrder() == 1).findFirst())
+                    .orElseThrow(() -> new PPMSException("Supervisor id not found"));
+            Member firstSupervisorMember =  project.getMembers()
+                    .stream().filter(m -> m.getTermId().equals(firstSupervisor.getTermId())).findFirst()
+                    .orElseThrow(() -> new PPMSException(String.format("%s is not assigned yet", firstSupervisor.getName())));
+            if(!firstSupervisorMember.getPersonId().equals(personAction.getId())){
+                throw new PPMSException(String.format("Only %s can assign other team member or module leader", firstSupervisor.getName()));
+            }
+            if(!Boolean.TRUE.equals(firstSupervisorMember.getSigned())){
+                throw new PPMSException("You should sign first");
+            }
+        }
 		boolean unassign = projectRepository.unAssignPerson(tenantId, projectId, position, personIdToUnassign);
 		if (unassign){
 			Person person = getPerson(tenantId, personIdToUnassign);
 			int workload = person.getWorkload();
 			if (Optional.ofNullable(term).isPresent()){
-				workload = workload - term.getQuota();
+				workload = workload - term.getWorkload();
 			}
 			int currentProject = person.getCurrentProjects() + 1;
 			personRepository.updateProjectInfo(tenantId, personIdToUnassign, workload, currentProject, person.getPreviousProjects());
@@ -604,18 +661,33 @@ public class ProjectService {
 					assignment.getPersonId());
 	}
 
-	public void apply(long tenantId, String projectId, Apply apply) {
+	public void apply(long tenantId, String projectId, Apply apply, String email,  List<MultipartFile> files) {
 		Project p = getProjectsById(tenantId, projectId);
-		boolean alreadyApplied = p.getApplies().stream().anyMatch(app -> app.getPersonId().equals(apply.getPersonId()));
-		if (alreadyApplied){
-			throw new PPMSException(ErrorCode.PERSON_ID_NOT_FOUND,
-					String.format("Person id '%s' already applied .", apply.getPersonId()));
-		}
-		
-		p.getApplies().add(apply);
-		projectRepository.save(p);
+        if (!p.getStatus().equals(ProjectStatus.PROPOSAL)){
+            throw new PPMSException(String.format("Project cannot deleted because status is different from '%s'.", ProjectStatus.PROPOSAL.getLabel()));
+        }
+        Person person = personRepository.findByTenantIdAndEmail(tenantId, email);
+        boolean alreadyApplied = p.getApplies().stream().anyMatch(app -> app.getCreatedBy().getPersonId().equals(person.getId()));
+        if (alreadyApplied){
+            throw new PPMSException(ErrorCode.PERSON_ID_NOT_FOUND, "You already applied to this project");
+        }
+        if (apply != null && !CollectionUtils.isEmpty(files)){
+            apply.setFiles(files.stream().map(f -> storeFile(tenantId, projectId, "apply", f)).collect(Collectors.toList()));
+        }
+		apply.setSubmitDate(new Date());
+	    apply.setCreatedBy( new ShortPerson(person.getId(), person.getFirstName(),
+                person.getLastName(), person.getPhotoFileId()));
+		projectRepository.addApply(tenantId, projectId, apply);
 		
 	}
+
+    private FileDescriptor storeFile(long tenantId, String projectId, String type, MultipartFile file){
+        String mimeType = file.getContentType();
+        String fileName = file.getOriginalFilename();
+        String fileKey = String.format("ORG-%d/projects/%s/%s/%s", tenantId, projectId, type, fileName);
+        String url = documentManagementService.uploadFile(fileKey, file, false);
+        return new FileDescriptor(fileName, fileKey, url, mimeType);
+    }
 
 
 

@@ -163,10 +163,10 @@ public class OrganisationController {
 
     @RequestMapping(method=RequestMethod.GET, value="/api/organisations/{organisationId}/departments/{departmentId}/actions")
     public List<Action> getActions(@PathVariable String organisationId, @PathVariable String departmentId) {
-        hasAnyRole(Role.ADMIN_CREATOR, Role.SUPER_ADMIN, Role.MODULE_LEADER);
+     /*/   hasAnyRole(Role.ADMIN_CREATOR, Role.SUPER_ADMIN, Role.MODULE_LEADER);
         if (isHasRole(Role.MODULE_LEADER) && !isDepartmentModelLeader(getLoggedUserInfo().getEmail(), getCurrentTenantId(), organisationId, departmentId)){
             throw new AccessDeniedException("Only Module leader of this module can perform this operation");
-        }
+        }*/
         return organisationService.getDepartment(getCurrentTenantId(), organisationId, departmentId).getActions();
     }
 

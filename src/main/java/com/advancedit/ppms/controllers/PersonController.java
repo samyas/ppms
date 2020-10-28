@@ -195,7 +195,7 @@ public class PersonController {
                     Optional<SupervisorTerm> supervisorTerm = p.getMembers().stream().filter(m -> m.getPersonId().equals(person.getId()))
                             .findFirst().flatMap(m -> terms.stream().filter(s -> s.getTermId().equals(m.getTermId())).findFirst());
                     if (supervisorTerm.isPresent()){
-                        workload = workload + supervisorTerm.get().getQuota();
+                        workload = workload + supervisorTerm.get().getWorkload();
                     }
                 }
             }

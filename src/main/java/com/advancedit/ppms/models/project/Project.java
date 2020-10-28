@@ -10,7 +10,6 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import com.advancedit.ppms.controllers.beans.Apply;
 import com.advancedit.ppms.models.person.ShortPerson;
 import org.springframework.format.annotation.DateTimeFormat;
 

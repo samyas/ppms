@@ -7,20 +7,16 @@ import com.advancedit.ppms.controllers.beans.ProjectResource;
 import com.advancedit.ppms.exceptions.ErrorCode;
 import com.advancedit.ppms.exceptions.PPMSException;
 import com.advancedit.ppms.models.files.FileDescriptor;
-import com.advancedit.ppms.models.organisation.Action;
 import com.advancedit.ppms.models.organisation.Department;
 import com.advancedit.ppms.models.organisation.Organisation;
 import com.advancedit.ppms.models.organisation.SupervisorTerm;
 import com.advancedit.ppms.models.person.Person;
 import com.advancedit.ppms.models.person.ShortPerson;
 import com.advancedit.ppms.models.project.*;
-import com.advancedit.ppms.models.sequences.DatabaseSequence;
 import com.advancedit.ppms.models.user.Role;
 import com.advancedit.ppms.service.*;
 import com.advancedit.ppms.service.beans.AttachType;
 import com.advancedit.ppms.utils.LoggedUserInfo;
-import org.apache.commons.lang3.ArrayUtils;
-import org.apache.http.entity.ContentType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -28,13 +24,11 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.*;
 
-import com.advancedit.ppms.controllers.beans.Apply;
+import com.advancedit.ppms.models.project.Apply;
 import com.advancedit.ppms.controllers.beans.Assignment;
 import org.springframework.web.multipart.MultipartFile;
 
 import static com.advancedit.ppms.controllers.presenter.ProjectPresenter.toResource;
-import static com.advancedit.ppms.service.beans.AttachType.ORGANISATION;
-import static com.advancedit.ppms.service.beans.AttachType.PERSON;
 import static com.advancedit.ppms.utils.SecurityUtils.*;
 import static java.util.Arrays.asList;
 
@@ -103,17 +97,24 @@ public class ProjectController {
     }
 
     //Assign Process
-    @RequestMapping(method=RequestMethod.POST, value="/api/projects/{projectId}/apply")
-    public void apply(@PathVariable String projectId, @RequestBody Apply apply) {
-    	 projectService.apply(getCurrentTenantId(), projectId, apply);
-    	 
+    @RequestMapping(method=RequestMethod.POST, value="/api/projects/{projectId}/apply-with-upload", consumes = {"multipart/form-data"})
+    public void apply(@PathVariable String projectId,
+                                  @RequestPart("apply")  Apply apply,
+                                  @RequestPart("files") List<MultipartFile> files){
+
+      //  hasAnyRole(Role.STUDENT);
+        long tenantId = getCurrentTenantId();
+        String projectModuleId = projectService.getModuleId(tenantId, projectId);
+        isSameModule(projectModuleId);
+        LoggedUserInfo loggedUserInfo = getLoggedUserInfo();
+    	 projectService.apply(tenantId, projectId, apply, loggedUserInfo.getEmail(), files);
     }
     
     @RequestMapping(method=RequestMethod.POST, value="/api/projects/{projectId}/assign-supervisor")
     public void assignSupervisor(@PathVariable String projectId, @RequestBody Assignment assignment) {
-        hasAnyRole(Role.ADMIN_CREATOR, Role.SUPER_ADMIN, Role.MODULE_LEADER, Role.STAFF);
+        hasAnyRole(Role.ADMIN_CREATOR, Role.SUPER_ADMIN, Role.MODULE_LEADER, Role.STAFF, Role.STUDENT);
         String projectModuleId = projectService.getModuleId(getCurrentTenantId(), projectId);
-        if (isHasAnyRole(Role.MODULE_LEADER, Role.STAFF)) isSameModule(projectModuleId);
+        if (isHasAnyRole(Role.MODULE_LEADER, Role.STAFF, Role.STUDENT)) isSameModule(projectModuleId);
         SupervisorTerm term = organisationService.getTerm(getCurrentTenantId(), projectModuleId, assignment.getTermId())
                 .orElseThrow(() -> new PPMSException("Supervisor Termanology not found"));
         projectService.assignSupervisor(getCurrentTenantId(), projectId, getLoggedUserInfo().getEmail(),
@@ -127,7 +128,7 @@ public class ProjectController {
         if (isHasAnyRole(Role.MODULE_LEADER, Role.STAFF)) isSameModule( projectModuleId);
         Department department = organisationService.getDepartment(getCurrentTenantId() , projectModuleId);
         projectService.assignStudent(getCurrentTenantId(), projectId, assignment.getPersonId(),
-                department.getMaxTeamNbr(), isHasRole(Role.MODULE_LEADER));
+                department.getMaxTeamNbr(), getLoggedUserInfo().getEmail(), isHasRole(Role.MODULE_LEADER));
     }
 
 
@@ -139,7 +140,8 @@ public class ProjectController {
         if (isHasAnyRole(Role.MODULE_LEADER, Role.STAFF)) isSameModule(projectModuleId);
         SupervisorTerm term = Optional.ofNullable(termId).flatMap( t -> organisationService.getTerm(getCurrentTenantId(), projectModuleId, t))
                 .orElse(null);
-        projectService.unAssign(getCurrentTenantId(), projectId, personId, position,  term, isHasRole(Role.MODULE_LEADER));
+        projectService.unAssign(getCurrentTenantId(), projectId, personId, position,  term,
+                getLoggedUserInfo().getEmail(), isHasRole(Role.MODULE_LEADER));
     }
 
     @RequestMapping(method=RequestMethod.POST, value="/api/projects/{projectId}/sign")
@@ -286,8 +288,9 @@ public class ProjectController {
     
     @RequestMapping(method=RequestMethod.DELETE, value="/api/projects/{id}")
     public void deleteProject(@PathVariable String id) {
-        hasAnyRole(Role.ADMIN_CREATOR, Role.SUPER_ADMIN, Role.MODULE_LEADER);
-        projectService.delete(getCurrentTenantId(), id);
+        LoggedUserInfo loggedUserInfo = getLoggedUserInfo();
+        Person person = personService.getPersonByEmail(loggedUserInfo.getTenantId(), loggedUserInfo.getEmail());
+        projectService.delete(getCurrentTenantId(), id, person.getId());
     }
     
     /****************************************Goals*************************************************************/

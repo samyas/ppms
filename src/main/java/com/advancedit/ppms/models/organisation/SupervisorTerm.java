@@ -14,6 +14,7 @@ public class SupervisorTerm {
 	private String termId;
 	private String name;
 	private String description;
+	private int workload;
 	private int quota;
 	private int order;
 	private Boolean mandatoryBeforeStart;

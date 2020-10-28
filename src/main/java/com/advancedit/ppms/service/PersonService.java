@@ -138,6 +138,8 @@ public class PersonService {
 		savedPerson.setShortDescription(updatePerson.getShortDescription());
         savedPerson.setPersonfunction(updatePerson.getPersonfunction());
 		savedPerson.setDepartmentId(updatePerson.getDepartmentId());
+		savedPerson.setSkills(updatePerson.getSkills());
+		savedPerson.setDescription(updatePerson.getDescription());
         return personRepository.save(savedPerson);
 	}
 
