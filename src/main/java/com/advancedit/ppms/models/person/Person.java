@@ -41,7 +41,7 @@ public class Person {
 	private String homeAddress;
 	private String jobAddress;
 	private String certifications;
-	private List<Skill> skills;
+	private List<String> skills;
 	private String level;
 	@DateTimeFormat(style = "M-")
     private Date lastCvUpdate;

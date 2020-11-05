@@ -11,6 +11,7 @@ import com.fasterxml.classmate.TypeBindings;
 import com.mongodb.BasicDBObject;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.UpdateOptions;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.bson.Document;
 import org.bson.types.ObjectId;
@@ -30,6 +31,7 @@ import org.springframework.data.mongodb.core.query.Update;
 
 import com.advancedit.ppms.exceptions.PPMSException;
 import com.mongodb.client.result.UpdateResult;
+import org.springframework.util.CollectionUtils;
 
 import javax.swing.plaf.basic.BasicListUI;
 
@@ -61,13 +63,13 @@ public class ProjectRepositoryImpl implements ProjectCustomRepository {
 	}
 
 	@Override
-	public Page<Project> findByAll(long tenantId, String departmentId, ProjectStatus status, Pageable pageable){
+	public Page<Project> findByAll(long tenantId, String departmentId, List<ProjectStatus> status, Pageable pageable){
 		Criteria criteria = Criteria.where("tenantId").is(tenantId);
 		if (departmentId != null) {
 			criteria = criteria.and("departmentId").is(departmentId);
 		}
-        if (status != null) {
-            criteria = criteria.and("status").is(status);
+        if (!CollectionUtils.isEmpty(status)) {
+            criteria = criteria.and("status").in(status);
         }
 		Query query = new BasicQuery( criteria.getCriteriaObject()).with(pageable);
 		query.fields().exclude("goals");

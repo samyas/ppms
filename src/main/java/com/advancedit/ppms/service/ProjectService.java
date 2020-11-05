@@ -65,7 +65,7 @@ public class ProjectService {
 		return projectRepository.findAll();
 	}
 
-	public Page<Project> getPagedListProject(long tenantId, int page, int size, String departmentId, ProjectStatus status, String name) {
+	public Page<Project> getPagedListProject(long tenantId, int page, int size, String departmentId, List<ProjectStatus> status, String name) {
 		Pageable pageableRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "name"));;
 		Page<Project> projects = null;
 	//	if (StringUtils.isEmpty(name) && StringUtils.isEmpty(status)) {

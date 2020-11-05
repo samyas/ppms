@@ -58,6 +58,7 @@ public class PersonPresenter {
         personResource.setJob(person.getJob());
         personResource.setYearsExperience(person.getYearsExperience());
         personResource.setEducation(person.getEducation());
+        personResource.setShortDescription(person.getShortDescription());
         personResource.setHomeAddress(person.getHomeAddress());
         personResource.setJobAddress(person.getJobAddress());
         personResource.setCertifications(person.getCertifications());

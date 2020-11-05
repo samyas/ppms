@@ -121,11 +121,18 @@ public class PersonController {
 
         lListPerson.forEach( p ->   updatePersonProjectInfo(tenantId, p, department.getSupervisorTerms()));
     }
-    
+
+
+
     @RequestMapping(method=RequestMethod.PUT, value="/api/persons/{id}")
     public String update(@PathVariable String id, @RequestBody Person person) {
         hasAnyRole(Role.SUPER_ADMIN, Role.ADMIN_CREATOR, Role.MODULE_LEADER);
     	return personService.updatePerson(getCurrentTenantId(), person).getId();
+    }
+
+    @RequestMapping(method=RequestMethod.PUT, value="/api/persons/{id}/profile")
+    public String updateProfile(@PathVariable String id, @RequestBody Person person) {
+        return personService.updateProfile(getCurrentTenantId(), person, getLoggedUserInfo().getEmail()).getId();
     }
 
     @RequestMapping(method=RequestMethod.PUT, value="/api/persons/{personId}/validate")

@@ -36,7 +36,7 @@ public class PersonResource {
     private String certifications;
     private String description;
     private String identifier;
-    private List<Skill> skills;
+    private List<String> skills;
     private String level;
     @DateTimeFormat(style = "M-")
     private Date lastCvUpdate;

@@ -57,7 +57,7 @@ public class ProjectController {
     
     @RequestMapping(method=RequestMethod.GET, value="/api/projects/paged")
     public Page<ProjectResource> getPagedProjects(@RequestParam("page") int page, @RequestParam("size") int size,
-                                                  @RequestParam(name = "status", required=false)ProjectStatus status,
+                                                  @RequestParam(name = "status", required=false)List<ProjectStatus> status,
                                                   @RequestParam(name = "name", required=false)String name) {
         LoggedUserInfo loggedUserInfo = getLoggedUserInfo();
         Person person = personService.getPersonByEmail(loggedUserInfo.getTenantId(), loggedUserInfo.getEmail());

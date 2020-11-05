@@ -143,6 +143,16 @@ public class PersonService {
         return personRepository.save(savedPerson);
 	}
 
+	public Person updateProfile(long tenantId, Person updatePerson, String email) {
+		Person savedPerson = getPersonByEmail(tenantId, email);
+		if (!savedPerson.getId().equals(updatePerson.getId())){
+			throw new PPMSException("Operation not allowed");
+		}
+		savedPerson.setShortDescription(updatePerson.getShortDescription());
+		savedPerson.setSkills(updatePerson.getSkills());
+		savedPerson.setDescription(updatePerson.getDescription());
+		return personRepository.save(savedPerson);
+	}
 
 	public void validatePerson(long tenantId, String personId) {
 		Person person = getPersonById(tenantId, personId);
