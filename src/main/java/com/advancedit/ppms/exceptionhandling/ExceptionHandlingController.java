@@ -1,29 +1,23 @@
 package com.advancedit.ppms.exceptionhandling;
 
-import com.advancedit.ppms.configs.JwtAuthenticationEntryPoint;
-import com.advancedit.ppms.controllers.beans.ApiError;
 import com.advancedit.ppms.exceptions.PPMSException;
-import org.apache.tomcat.util.http.fileupload.impl.FileSizeLimitExceededException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.Ordered;
-import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import javax.servlet.http.HttpServletRequest;
 
 
-@ControllerAdvice
-public class ExceptionHandlerControllerAdvice extends ResponseEntityExceptionHandler {
+@Controller
+public class ExceptionHandlingController  {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ExceptionHandlerControllerAdvice.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ExceptionHandlingController.class);
 
    /* @ExceptionHandler(PPMSException.class)
     @ResponseStatus(value = HttpStatus.FORBIDDEN)

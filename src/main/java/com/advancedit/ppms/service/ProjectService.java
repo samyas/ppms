@@ -154,20 +154,33 @@ public class ProjectService {
 					String.format("Project id not found '%s'.", id));
 	}
 
-	public String updateProject(long tenantId, String id, Project project) {
-		checkIfProjectExist(tenantId, id);
+	public String updateProject(long tenantId, String id, Project project, String updatePersonId) {
+        Project savedProject = getProjectsById(tenantId, id);
+        List<String> allPersonIds =  getProjectRelatedPerson(savedProject);
+        if (!allPersonIds.contains(updatePersonId)) throw new PPMSException("Operation not allowed");
 		return projectRepository.updateProjectNameAndDescriptionAndKeywords(tenantId, id, project);
 
 	}
 
-	public void delete(long tenantId, String id, String personCreatorId) {
+    private List<String> getProjectRelatedPerson(Project project){
+        List<String> projectPersonIds = new ArrayList<>();
+        Optional.ofNullable(project.getCreator()).map(ShortPerson::getPersonId).ifPresent(projectPersonIds::add);
+        project.getTeam().stream().map(Member::getPersonId).forEach(projectPersonIds::add);
+        project.getMembers().stream().map(Member::getPersonId).forEach(projectPersonIds::add);
+        return projectPersonIds;
+    }
+
+	public void delete(long tenantId, String id, String personCreatorId, boolean isModelLeader) {
 		checkIfProjectExist(tenantId, id);
-		Project project = getProjectsById(tenantId, personCreatorId);
+		Project project = getProjectsById(tenantId, id);
 		if (!project.getStatus().equals(PROPOSAL)){
 			throw new PPMSException(String.format("Project cannot deleted because status is different from '%s'.", PROPOSAL.getLabel()));
 		}
-		if (!project.getCreator().getPersonId().equals(personCreatorId)){
-			throw new PPMSException("Only the owner of the project can delete the project");
+		if (!project.getCreator().getPersonId().equals(personCreatorId) || !isModelLeader){
+			throw new PPMSException("Only the owner of the project or module leader can delete the project");
+		}
+		if (!project.getMembers().isEmpty() || !project.getTeam().isEmpty()){
+			throw new PPMSException("No one should be assigned to this project");
 		}
 		Optional.ofNullable(project.getImage()).map(FileDescriptor::getKey).ifPresent(key -> documentManagementService.deleteFile(key));
 		Optional.ofNullable(project.getAttachments()).ifPresent(ats -> ats.stream().map(FileDescriptor::getKey).forEach(key -> documentManagementService.deleteFile(key)));

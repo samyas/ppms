@@ -263,7 +263,10 @@ public class ProjectController {
 
         @RequestMapping(method=RequestMethod.PUT, value="/api/projects/{id}")
     public String update(@PathVariable String id, @RequestBody Project project) {
-    	return projectService.updateProject(getCurrentTenantId(), id, project);
+            LoggedUserInfo loggedUserInfo = getLoggedUserInfo();
+            Person person = personService.getPersonByEmail(loggedUserInfo.getTenantId(), loggedUserInfo.getEmail());
+            if (isHasAnyRole( Role.MODULE_LEADER, Role.STAFF, Role.STUDENT)) isSameModule(project.getDepartmentId());
+            return projectService.updateProject(getCurrentTenantId(), id, project, person.getId());
     }
 
 
@@ -277,6 +280,7 @@ public class ProjectController {
         Project project = projectService.getProjectsById(getCurrentTenantId(), id);
         if (person.getDepartmentId()!= null && !project.getDepartmentId().equals(person.getDepartmentId()))
             throw new PPMSException(ErrorCode.PROJECT_ID_NOT_FOUND, "Project not found");
+
         boolean isAdmin = isHasAnyRole(Role.ADMIN_CREATOR, Role.SUPER_ADMIN, Role.MODULE_LEADER);
         List<String> allPersonIds =  projectRelatedPersons(project);
         List<Person> personList = personService.getAllPersonsByIds(loggedUserInfo.getTenantId(), allPersonIds);
@@ -290,7 +294,11 @@ public class ProjectController {
     public void deleteProject(@PathVariable String id) {
         LoggedUserInfo loggedUserInfo = getLoggedUserInfo();
         Person person = personService.getPersonByEmail(loggedUserInfo.getTenantId(), loggedUserInfo.getEmail());
-        projectService.delete(getCurrentTenantId(), id, person.getId());
+
+        String projectModuleId = projectService.getModuleId(getCurrentTenantId(), id);
+        if (isHasAnyRole(Role.MODULE_LEADER, Role.STAFF, Role.STUDENT)) isSameModule(projectModuleId);
+
+        projectService.delete(getCurrentTenantId(), id, person.getId(), isHasRole(Role.MODULE_LEADER));
     }
     
     /****************************************Goals*************************************************************/

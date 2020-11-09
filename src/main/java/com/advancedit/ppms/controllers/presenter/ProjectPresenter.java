@@ -1,12 +1,15 @@
 package com.advancedit.ppms.controllers.presenter;
 
+import com.advancedit.ppms.controllers.beans.MemberResource;
 import com.advancedit.ppms.controllers.beans.ProjectResource;
+import com.advancedit.ppms.exceptions.PPMSException;
+import com.advancedit.ppms.models.organisation.Department;
 import com.advancedit.ppms.models.organisation.Organisation;
 import com.advancedit.ppms.models.organisation.ShortDepartment;
+import com.advancedit.ppms.models.organisation.SupervisorTerm;
 import com.advancedit.ppms.models.person.Person;
 import com.advancedit.ppms.models.person.ShortPerson;
 import com.advancedit.ppms.models.project.*;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.util.CollectionUtils;
 
 import java.util.*;
@@ -17,6 +20,7 @@ import static org.apache.commons.lang3.StringUtils.isNotEmpty;
 public class ProjectPresenter {
 
     public static ProjectResource toResource(Project project, Organisation organisation, String personId, boolean isAdmin, List<Person> personList){
+        Department department = getDepartment(project.getDepartmentId(), organisation);
         ProjectResource projectResource = new ProjectResource();
         projectResource.setProjectId(project.getProjectId());
         projectResource.setName(project.getName());
@@ -31,11 +35,11 @@ public class ProjectPresenter {
         projectResource.setStartDate(project.getStartDate());
         projectResource.setEndDate(project.getEndDate());
         projectResource.setApplies(project.getApplies());
-        projectResource.setTeam(project.getTeam().stream().map(m -> convert(m, personList)).collect(Collectors.toList()));
-        projectResource.setMembers(project.getMembers().stream().map(m -> convert(m, personList)).collect(Collectors.toList()));
+        projectResource.setTeam(project.getTeam().stream().map(m -> convert(m, personList, Collections.emptyList())).collect(Collectors.toList()));
+        projectResource.setMembers(department.getSupervisorTerms().stream().map(st ->  convert(st, project.getMembers(), personList)).collect(Collectors.toList()));
         projectResource.setCreator(convert(project.getCreator(), personList));
         projectResource.setAssignedTo(project.getAssignedTo());
-        projectResource.setDepartment(getDepartment(project.getDepartmentId(), organisation));
+        projectResource.setDepartment(new ShortDepartment(department.getDepartmentId(), department.getName()));
         projectResource.setLogo(project.getImage());
         projectResource.setLogoId(project.getLogoId());
         projectResource.setTechnologies(project.getTechnologies());
@@ -43,7 +47,9 @@ public class ProjectPresenter {
         projectResource.setTenantId(project.getTenantId());
         projectResource.setAttachments(project.getAttachments());
         projectResource.setExtended(isAdmin || (personId != null && isBelongToProjectTeam(personId, project)));
-        projectResource.setEdit(canEdit(personId, project, isAdmin));
+        projectResource.setCanEdit(personId != null &&  canEdit(personId, project, isAdmin));
+        projectResource.setCanDelete(personId != null && canDelete(personId, project, isAdmin));
+        projectResource.setMaxTeamMembers(department.getMaxTeamNbr());
         if (projectResource.isExtended()) {
             projectResource.setGoals(project.getGoals());
             projectResource.getGoals().sort(ProjectPresenter::compare);
@@ -55,21 +61,54 @@ public class ProjectPresenter {
         return projectResource;
     }
 
-    private static Member convert(Member member, List<Person> personList){
+    private static MemberResource convert(Member member, List<Person> personList, List<SupervisorTerm> terms){
         if (member == null) return null;
+        MemberResource memberResource = new MemberResource();
+
         Optional<Person> person = personList.stream().filter(p -> p.getId().equals(member.getPersonId())).findFirst();
-        person.ifPresent( p ->  {if (p.getImage() != null) {
-            member.setImageId(p.getImage().getUrl());
-        }});
-        return member;
+        person.ifPresent( p ->  {
+            memberResource.setFirstName(p.getFirstName());
+            memberResource.setLastName(p.getLastName());
+            memberResource.setPersonId(p.getId());
+            memberResource.setSigned(member.getSigned());
+            Optional.ofNullable(p.getImage()).ifPresent( i -> memberResource.setImageId(i.getUrl()));
+        });
+
+        Optional<SupervisorTerm> term = terms.stream().filter(t -> t.getTermId().equals(member.getTermId())).findFirst();
+        term.ifPresent( t -> {
+            memberResource.setTermId(t.getTermId());
+            memberResource.setTermName(t.getName());
+        });
+        return memberResource;
     }
 
-    private static ShortPerson convert(ShortPerson member, List<Person> personList){
+    private static MemberResource convert(SupervisorTerm term, List<Member> members, List<Person> personList) {
+        if (term == null) return null;
+        MemberResource memberResource = new MemberResource();
+        memberResource.setTermId(term.getTermId());
+        memberResource.setTermName(term.getName());
+        Optional<Member> assignedMember = members.stream().filter(m -> term.getTermId().equals(m.getTermId())).findFirst();
+        if (assignedMember.isPresent()){
+            Optional<Person> person = personList.stream().filter(p -> p.getId().equals(assignedMember.get().getPersonId())).findFirst();
+            person.ifPresent(p -> {
+                memberResource.setFirstName(p.getFirstName());
+                memberResource.setLastName(p.getLastName());
+                memberResource.setPersonId(p.getId());
+                memberResource.setSigned(assignedMember.get().getSigned());
+                Optional.ofNullable(p.getImage()).ifPresent(i -> memberResource.setImageId(i.getUrl()));
+            });
+        }
+        return memberResource;
+
+    }
+        private static ShortPerson convert(ShortPerson member, List<Person> personList){
         if (member == null) return null;
         Optional<Person> person = personList.stream().filter(p -> p.getId().equals(member.getPersonId())).findFirst();
-        person.ifPresent( p ->  {if (p.getImage() != null) {
-            member.setImageId(p.getImage().getUrl());
-        }});
+        person.ifPresent( p ->  {
+            member.setFirstName(p.getFirstName());
+            member.setLastName(p.getLastName());
+            Optional.ofNullable(p.getImage()).ifPresent( i -> member.setImageId(i.getUrl()));
+        });
         return member;
     }
 
@@ -106,9 +145,14 @@ public class ProjectPresenter {
         return false;
     }
 
-    private static ShortDepartment getDepartment(String departmentId, Organisation organisation){
+    private static boolean canDelete(String personId, Project project, boolean isAdmin){
+        return (ProjectStatus.PROPOSAL.equals(project.getStatus()) && (personId.equals(project.getCreator().getPersonId()) || isAdmin)
+        && (project.getTeam().isEmpty() && project.getMembers().isEmpty()));
+    }
+
+    private static Department getDepartment(String departmentId, Organisation organisation){
        return organisation.getDepartments().stream().filter(d -> d.getDepartmentId().equals(departmentId)).findFirst()
-               .map(d -> new ShortDepartment(d.getDepartmentId(), d.getName())) .orElse(null);
+               .orElseThrow(() -> new PPMSException("Department not found"));
     }
 
 

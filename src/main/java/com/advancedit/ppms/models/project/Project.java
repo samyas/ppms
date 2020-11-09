@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.List;
 
 import com.advancedit.ppms.models.files.FileDescriptor;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
@@ -13,6 +14,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import com.advancedit.ppms.models.person.ShortPerson;
 import org.springframework.format.annotation.DateTimeFormat;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Data
 @NoArgsConstructor
 @Document

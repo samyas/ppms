@@ -33,8 +33,8 @@ public class ProjectResource {
     @DateTimeFormat(style = "M-")
     private Date endDate;
     private List<Apply> applies = new ArrayList<>();
-    private List<Member> team = new ArrayList<>();
-    private List<Member> members = new ArrayList<>();
+    private List<MemberResource> team = new ArrayList<>();
+    private List<MemberResource> members = new ArrayList<>();
     private ShortPerson creator;
     private List<ShortPerson> assignedTo = new ArrayList<>();
     private List<FileDescriptor> attachments;
@@ -46,7 +46,9 @@ public class ProjectResource {
     private List<String> organisationsId = new ArrayList<>();
     private long tenantId;
     private boolean extended;
-    private boolean edit;
+    private boolean canDelete;
+    private boolean canEdit;
     private Goal nextAction;
     private FileDescriptor logo;
+    private int maxTeamMembers;
 }
