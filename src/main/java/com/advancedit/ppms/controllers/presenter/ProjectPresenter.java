@@ -50,16 +50,25 @@ public class ProjectPresenter {
         projectResource.setCanEdit(personId != null &&  canEdit(personId, project, isAdmin));
         projectResource.setCanDelete(personId != null && canDelete(personId, project, isAdmin));
         projectResource.setMaxTeamMembers(department.getMaxTeamNbr());
+        projectResource.setTotalMembers(project.getMembers().size() + project.getTeam().size());
+
         if (projectResource.isExtended()) {
             projectResource.setGoals(project.getGoals());
             projectResource.getGoals().sort(ProjectPresenter::compare);
             projectResource.setGoals(projectResource.getGoals().stream().map( g -> convert(g, personList)).collect(Collectors.toList()));
             projectResource.setBudget(project.getBudget());
+            projectResource.setProgress(calculateProgress(project.getGoals()));
             projectResource.setNextAction(projectResource.getGoals().stream().filter(g -> (g.getIsAction() != null && g.getIsAction() == Boolean.TRUE) &&
                     isNotEmpty(g.getActionId()) && !GoalStatus.COMPLETED.equals(g.getStatus())).findFirst().orElse(null));
         }
         return projectResource;
     }
+     private static int calculateProgress(List<Goal> goals){
+        List<Goal> actions = goals.stream().filter(g -> (g.getIsAction() != null && g.getIsAction() == Boolean.TRUE)).collect(Collectors.toList());
+        int nbrActions = actions.size() ;
+        int completedActions = (int) actions.stream().filter(a -> a.getStatus().equals(GoalStatus.COMPLETED)).count();
+         return  Math.floorDiv(completedActions * 100 , nbrActions);
+     }
 
     private static MemberResource convert(Member member, List<Person> personList, List<SupervisorTerm> terms){
         if (member == null) return null;

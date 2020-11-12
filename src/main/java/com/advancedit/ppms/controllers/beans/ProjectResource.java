@@ -42,6 +42,7 @@ public class ProjectResource {
     private String budget;
     private String logoId;
     private List<Goal> goals = new ArrayList<>();
+    private int progress = 0;
     private List<String> technologies = new ArrayList<>();;
     private List<String> organisationsId = new ArrayList<>();
     private long tenantId;
@@ -51,4 +52,5 @@ public class ProjectResource {
     private Goal nextAction;
     private FileDescriptor logo;
     private int maxTeamMembers;
+    private int totalMembers = 0;
 }
