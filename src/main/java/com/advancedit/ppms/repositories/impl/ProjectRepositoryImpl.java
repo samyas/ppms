@@ -2,6 +2,7 @@ package com.advancedit.ppms.repositories.impl;
 
 import java.util.*;
 
+import com.advancedit.ppms.controllers.beans.ProjectFilter;
 import com.advancedit.ppms.models.files.FileDescriptor;
 import com.advancedit.ppms.models.person.Person;
 import com.advancedit.ppms.models.person.ShortPerson;
@@ -63,14 +64,25 @@ public class ProjectRepositoryImpl implements ProjectCustomRepository {
 	}
 
 	@Override
-	public Page<Project> findByAll(long tenantId, String departmentId, List<ProjectStatus> status, Pageable pageable){
+	public Page<Project> findByAll(long tenantId, ProjectFilter projectFilter, Pageable pageable){
 		Criteria criteria = Criteria.where("tenantId").is(tenantId);
-		if (departmentId != null) {
-			criteria = criteria.and("departmentId").is(departmentId);
+
+		if (projectFilter.getDepartmentId() != null) {
+			criteria = criteria.and("departmentId").is(projectFilter.getDepartmentId());
 		}
-        if (!CollectionUtils.isEmpty(status)) {
-            criteria = criteria.and("status").in(status);
+        if (!CollectionUtils.isEmpty(projectFilter.getStatuses())) {
+            criteria = criteria.and("status").in(projectFilter.getStatuses());
         }
+        if (projectFilter.isOnlyAssignedToPersonId()){
+		        String key = projectFilter.isStudent() ? "team" : "members";
+				criteria = criteria.and(key + ".personId").is(projectFilter.getPersonId());
+		}
+		if (!CollectionUtils.isEmpty(projectFilter.getKeywords())) {
+			criteria = criteria.and("keywords").in(projectFilter.getKeywords());
+		}
+		if (projectFilter.getName() != null) {
+			criteria = criteria.and("name").regex(projectFilter.getName(), "i");
+		}
 		Query query = new BasicQuery( criteria.getCriteriaObject()).with(pageable);
 		query.fields().exclude("goals");
 		List<Project> projects = mongoTemplate.find(query, Project.class);

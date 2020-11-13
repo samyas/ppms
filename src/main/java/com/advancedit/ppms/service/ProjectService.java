@@ -1,5 +1,6 @@
 package com.advancedit.ppms.service;
 
+import com.advancedit.ppms.controllers.beans.ProjectFilter;
 import com.advancedit.ppms.models.project.Apply;
 import com.advancedit.ppms.controllers.beans.Assignment;
 import com.advancedit.ppms.exceptions.ErrorCode;
@@ -65,11 +66,11 @@ public class ProjectService {
 		return projectRepository.findAll();
 	}
 
-	public Page<Project> getPagedListProject(long tenantId, int page, int size, String departmentId, List<ProjectStatus> status, String name) {
+	public Page<Project> getPagedListProject(long tenantId, int page, int size, ProjectFilter projectFilter) {
 		Pageable pageableRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "name"));;
 		Page<Project> projects = null;
 	//	if (StringUtils.isEmpty(name) && StringUtils.isEmpty(status)) {
-			projects = projectRepository.findByAll(tenantId, departmentId, status, pageableRequest);
+			projects = projectRepository.findByAll(tenantId, projectFilter.rebuildFilter(), pageableRequest);
 	//	} else {
 	//		projects = projectRepository.findByAllCriteria(status, name, pageableRequest);
 	//	}
@@ -99,6 +100,7 @@ public class ProjectService {
 		project.setProjectId(null);
 		project.setTenantId(tenantId);
 		project.setStatus(ProjectStatus.PROPOSAL);
+		project.setCreationDate(new Date());
 		project.setCreator(new ShortPerson(creator.getId(), creator.getFirstName(), creator.getLastName(), creator.getPhotoFileId()));
 
 		List<Goal> goals = department.getActions().stream().map(this::createGoalFromAction).collect(Collectors.toList());
@@ -196,8 +198,7 @@ public class ProjectService {
 		if (personFunction.equals(PersonFunction.STUDENT)) {
 			return projectRepository.findAllByPersonId(tenantId, "team", personId, departmentId, status);
 		}
-		return projectRepository.findAllByPersonId(tenantId, "members" +
-				"", personId, departmentId, status);
+		return projectRepository.findAllByPersonId(tenantId, "members" , personId, departmentId, status);
 	}
 
 	public String getModuleId(long tenantId, String projectId) {

@@ -3,6 +3,7 @@ package com.advancedit.ppms.controllers;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import com.advancedit.ppms.controllers.beans.ProjectFilter;
 import com.advancedit.ppms.controllers.beans.ProjectResource;
 import com.advancedit.ppms.exceptions.ErrorCode;
 import com.advancedit.ppms.exceptions.PPMSException;
@@ -58,12 +59,19 @@ public class ProjectController {
     @RequestMapping(method=RequestMethod.GET, value="/api/projects/paged")
     public Page<ProjectResource> getPagedProjects(@RequestParam("page") int page, @RequestParam("size") int size,
                                                   @RequestParam(name = "status", required=false)List<ProjectStatus> status,
-                                                  @RequestParam(name = "name", required=false)String name) {
+                                                  @RequestParam(name = "keyword", required=false)List<String> keywords,
+                                                  @RequestParam(name = "name", required=false)String name,
+                                                  @RequestParam(name = "departmentId", required=false)String departmentIdInput,
+                                                  @RequestParam(name = "assignedToMe", required=false, defaultValue = "false")Boolean assignedToMe) {
         LoggedUserInfo loggedUserInfo = getLoggedUserInfo();
         Person person = personService.getPersonByEmail(loggedUserInfo.getTenantId(), loggedUserInfo.getEmail());
         Organisation organisation = organisationService.getOrganisationByTenantId(loggedUserInfo.getTenantId())
                .orElseThrow(() -> new PPMSException(ErrorCode.ORGANISATION_ID_NOT_FOUND, "Organisation was not found"));
-        Page<Project> pagedListProject = projectService.getPagedListProject(getCurrentTenantId(), page, size, person.getDepartmentId(), status, name);
+        String departmentId = Optional.ofNullable(departmentIdInput).orElse(person.getDepartmentId());
+        ProjectFilter projectFilter = ProjectFilter.builder().departmentId(departmentId).isStudent(isHasRole(Role.STUDENT))
+                .isModuleLeaderOrAdmin(isHasAnyRole(Role.MODULE_LEADER, Role.ADMIN_CREATOR)).personId(person.getId()).statuses(status)
+        .onlyAssignedToPersonId(assignedToMe).keywords(keywords).name(name).build();
+        Page<Project> pagedListProject = projectService.getPagedListProject(getCurrentTenantId(), page, size, projectFilter);
 
        List<String> allPersonIds =  pagedListProject.stream().map(this::projectRelatedPersons).flatMap(Collection::stream).collect(Collectors.toList());
         List<Person> personList = personService.getAllPersonsByIds(loggedUserInfo.getTenantId(), allPersonIds);

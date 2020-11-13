@@ -47,6 +47,8 @@ public class Project {
 	private List<FileDescriptor> attachments = new ArrayList<>();
 	private long tenantId;
 	private FileDescriptor image;
+	@DateTimeFormat(style = "M-")
+	private Date creationDate;
 
 	//TODO to remove
 	private ShortPerson supervisor;

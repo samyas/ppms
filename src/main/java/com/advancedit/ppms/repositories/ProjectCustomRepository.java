@@ -3,6 +3,7 @@ package com.advancedit.ppms.repositories;
 import java.util.List;
 import java.util.Optional;
 
+import com.advancedit.ppms.controllers.beans.ProjectFilter;
 import com.advancedit.ppms.models.files.FileDescriptor;
 import com.advancedit.ppms.models.person.ShortPerson;
 import com.advancedit.ppms.models.project.*;
@@ -13,7 +14,7 @@ public interface ProjectCustomRepository {
 
 	Page<ProjectSummary> getPagedProjectSummary(long tenantId, int page, int size, Pageable pageable);
 
-	Page<Project> findByAll(long tenantId, String departmentId, List<ProjectStatus> status, Pageable pageable);
+	Page<Project> findByAll(long tenantId, ProjectFilter projectFilter, Pageable pageable);
 
     Page<Project> findWithGoalByAll(long tenantId, String departmentId, ProjectStatus status, Pageable pageable);
 
