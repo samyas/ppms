@@ -53,7 +53,7 @@ public class EmailService {
 
 		emailBean.setMessage(generateHtmlContent("mail-template", data));
 
-		emailBean.setFrom("abdessalemsamet@gmail.com");
+		emailBean.setFrom(from);
     	emailBean.setTo(asList(receiver.getEmail()));
     	emailBean.setSubject("Join 3C");
     	emailClient.send(emailBean);
@@ -71,7 +71,7 @@ public class EmailService {
 		data.put("domain", domain);
 		emailBean.setMessage(generateHtmlContent("confirm-mail-template", data));
 
-		emailBean.setFrom("abdessalemsamet@gmail.com");
+		emailBean.setFrom(from);
 		emailBean.setTo(asList( receiver.getEmail()));
 		emailBean.setSubject("Welcome to 3C");
 		emailClient.send(emailBean);
@@ -90,7 +90,7 @@ public class EmailService {
 		data.put("domain", domain);
 		emailBean.setMessage(generateHtmlContent("reset-password-template", data));
 
-		emailBean.setFrom("abdessalemsamet@gmail.com");
+		emailBean.setFrom(from);
 		emailBean.setTo(asList( receiver.getEmail()));
 		emailBean.setSubject("3C : Reset Password");
 		emailClient.send(emailBean);

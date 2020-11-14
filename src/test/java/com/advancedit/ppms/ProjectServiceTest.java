@@ -1,4 +1,4 @@
-
+/*
 package com.advancedit.ppms;
 
 import com.advancedit.ppms.controllers.beans.Assignment;
@@ -112,7 +112,7 @@ public class ProjectServiceTest {
     }
 	
 	
-/*
+
 	@Test
 	public void getPagedSummury() {
 	//	addProjects();
@@ -238,7 +238,7 @@ public class ProjectServiceTest {
 		}
 		
 	}
-*/
+
 
 
     @Test
@@ -477,4 +477,4 @@ public class ProjectServiceTest {
 
 
     }
-}
+}*/

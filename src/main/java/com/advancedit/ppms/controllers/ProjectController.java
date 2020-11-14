@@ -67,7 +67,8 @@ public class ProjectController {
         Person person = personService.getPersonByEmail(loggedUserInfo.getTenantId(), loggedUserInfo.getEmail());
         Organisation organisation = organisationService.getOrganisationByTenantId(loggedUserInfo.getTenantId())
                .orElseThrow(() -> new PPMSException(ErrorCode.ORGANISATION_ID_NOT_FOUND, "Organisation was not found"));
-        String departmentId = Optional.ofNullable(departmentIdInput).orElse(person.getDepartmentId());
+
+        String departmentId = Optional.ofNullable(person.getDepartmentId()).orElse(departmentIdInput);
         ProjectFilter projectFilter = ProjectFilter.builder().departmentId(departmentId).isStudent(isHasRole(Role.STUDENT))
                 .isModuleLeaderOrAdmin(isHasAnyRole(Role.MODULE_LEADER, Role.ADMIN_CREATOR)).personId(person.getId()).statuses(status)
         .onlyAssignedToPersonId(assignedToMe).keywords(keywords).name(name).build();

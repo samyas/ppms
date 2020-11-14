@@ -11,6 +11,7 @@ import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
 import javax.mail.util.ByteArrayDataSource;
 
+import com.advancedit.ppms.exceptions.PPMSException;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +43,7 @@ public class EmailClient {
 				sendHtmlMail(eParams);
 			} catch (MessagingException e) {
 				logger.error("Could not send email to : {} Error = {}", eParams.getTo(), e.getMessage());
+				throw new PPMSException("Email was not sent successfully");
 			}
 		} else {
 			sendPlainTextMail(eParams);
