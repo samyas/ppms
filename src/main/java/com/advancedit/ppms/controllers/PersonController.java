@@ -69,7 +69,7 @@ public class PersonController {
                                                @RequestParam(value = "student", required = false) Boolean isStudent,
                                                @RequestParam(value = "status", required = false) String status,
                                                @RequestParam(value = "name", required = false) String name) {
-        hasAnyRole(Role.SUPER_ADMIN, Role.ADMIN_CREATOR, Role.MODULE_LEADER, Role.STAFF);
+        hasAnyRole(Role.SUPER_ADMIN, Role.ADMIN_CREATOR, Role.MODULE_LEADER, Role.STAFF, Role.STUDENT);
         LoggedUserInfo loggedUserInfo = getLoggedUserInfo();
         List<PersonFunction> functions = new ArrayList<>();
         if (isStudent != null){

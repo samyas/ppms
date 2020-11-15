@@ -41,7 +41,7 @@ public class ProjectResource {
     private ShortDepartment department;
     private String budget;
     private String logoId;
-    private List<Goal> goals = new ArrayList<>();
+    private List<GoalResource> goals = new ArrayList<>();
     private int progress = 0;
     private List<String> technologies = new ArrayList<>();;
     private List<String> organisationsId = new ArrayList<>();
@@ -49,8 +49,9 @@ public class ProjectResource {
     private boolean extended;
     private boolean canDelete;
     private boolean canEdit;
-    private Goal nextAction;
+    private GoalResource nextAction;
     private FileDescriptor logo;
     private int maxTeamMembers;
     private int totalMembers = 0;
+    private String position;
 }

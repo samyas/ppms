@@ -1,15 +1,15 @@
 package com.advancedit.ppms.controllers.presenter;
 
+import com.advancedit.ppms.controllers.beans.GoalResource;
 import com.advancedit.ppms.controllers.beans.MemberResource;
 import com.advancedit.ppms.controllers.beans.ProjectResource;
 import com.advancedit.ppms.exceptions.PPMSException;
-import com.advancedit.ppms.models.organisation.Department;
-import com.advancedit.ppms.models.organisation.Organisation;
-import com.advancedit.ppms.models.organisation.ShortDepartment;
-import com.advancedit.ppms.models.organisation.SupervisorTerm;
+import com.advancedit.ppms.models.files.FileDescriptor;
+import com.advancedit.ppms.models.organisation.*;
 import com.advancedit.ppms.models.person.Person;
 import com.advancedit.ppms.models.person.ShortPerson;
 import com.advancedit.ppms.models.project.*;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.util.CollectionUtils;
 
 import java.util.*;
@@ -46,6 +46,7 @@ public class ProjectPresenter {
         projectResource.setOrganisationsId(project.getOrganisationsId());
         projectResource.setTenantId(project.getTenantId());
         projectResource.setAttachments(project.getAttachments());
+        projectResource.setPosition(getPosition(personId, projectResource.getMembers(), project));
         projectResource.setExtended(isAdmin || (personId != null && isBelongToProjectTeam(personId, project)));
         projectResource.setCanEdit(personId != null &&  canEdit(personId, project, isAdmin));
         projectResource.setCanDelete(personId != null && canDelete(personId, project, isAdmin));
@@ -53,10 +54,9 @@ public class ProjectPresenter {
         projectResource.setTotalMembers(project.getMembers().size() + project.getTeam().size());
 
         if (projectResource.isExtended()) {
-            projectResource.setGoals(project.getGoals());
+            projectResource.setGoals(project.getGoals().stream().map( g -> convert(g, personList, department.getActions())).collect(Collectors.toList()));
             projectResource.getGoals().sort(ProjectPresenter::compare);
-            projectResource.setGoals(projectResource.getGoals().stream().map( g -> convert(g, personList)).collect(Collectors.toList()));
-            projectResource.setBudget(project.getBudget());
+             projectResource.setBudget(project.getBudget());
             projectResource.setProgress(calculateProgress(project.getGoals()));
             projectResource.setNextAction(projectResource.getGoals().stream().filter(g -> (g.getIsAction() != null && g.getIsAction() == Boolean.TRUE) &&
                     isNotEmpty(g.getActionId()) && !GoalStatus.COMPLETED.equals(g.getStatus())).findFirst().orElse(null));
@@ -130,13 +130,43 @@ public class ProjectPresenter {
         return task;
     }
 
-    private static Goal convert(Goal goal, List<Person> personList){
+    private static GoalResource convert(Goal goal, List<Person> personList, List<Action> actions){
         if (goal == null) return null;
-        goal.setCreatedBy(convert(goal.getCreatedBy(), personList));
-        goal.setTasks(goal.getTasks().stream().map( t -> convert(t, personList)).collect(Collectors.toList()));
-        return goal;
+        GoalResource goalResource = new GoalResource();
+        goalResource.setGoalId(goal.getGoalId());
+        goalResource.setName(goal.getName());
+
+        goalResource.setShortDescription(goal.getShortDescription());
+        goalResource.setDescription(goal.getDescription());
+        goalResource.setStatus(goal.getStatus());
+        goalResource.setStartDate(goal.getStartDate());
+        goalResource.setEndDate(goal.getEndDate());
+        goalResource.setActualStartDate(goal.getActualStartDate());
+        goalResource.setActualEndDate(goal.getActualEndDate());
+        goalResource.setIsAction(goal.getIsAction());
+
+        goalResource.setScore(goal.getScore());
+        goalResource.setActionId(goal.getActionId());
+
+        goalResource.setBeforeStart(Optional.ofNullable(goal.getActionId())
+                .map(id -> actions.stream().filter(ac -> ac.getActionId().equals(id))
+                       .findFirst().map(Action::getBeforeStart).orElse(Boolean.FALSE)).orElse(Boolean.FALSE));
+        goalResource.setAttachmentsArrayList(goal.getAttachmentsArrayList());
+
+
+        goalResource.setCreatedBy(convert(goal.getCreatedBy(), personList));
+        goalResource.setTasks(goal.getTasks().stream().map( t -> convert(t, personList)).collect(Collectors.toList()));
+        return goalResource;
     }
 
+    private static String getPosition(String personId, List<MemberResource> memberResources, Project project){
+        if (personId == null) return null;
+        return memberResources.stream().filter(mr -> personId.equals(mr.getPersonId()))
+                .findFirst().map(MemberResource::getTermName).orElse(null);
+          //     .orElse(project.getTeam().stream().filter( m-> personId.equals(m.getPersonId()))
+          //             .map(m -> "Student").findFirst().orElse(null));
+
+    }
     private static boolean isBelongToProjectTeam(String personId, Project project){
         List<String> projectPersonIds = new ArrayList<>();
         Optional.ofNullable(project.getCreator()).map(ShortPerson::getPersonId).ifPresent(projectPersonIds::add);
@@ -165,7 +195,7 @@ public class ProjectPresenter {
     }
 
 
-    private static int compare(Goal o1, Goal o2) {
+    private static int compare(GoalResource o1, GoalResource o2) {
         if ( o1.getStartDate() != null && (o2.getStartDate() == null || o1.getStartDate().before(o2.getStartDate()))) return -1;
         return 2;
     }

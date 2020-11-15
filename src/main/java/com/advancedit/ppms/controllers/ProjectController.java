@@ -223,6 +223,13 @@ public class ProjectController {
         projectService.changeStatusToReAllocatedOrWithdrawOrSuspendOrProgress(getCurrentTenantId(), projectId, status);
     }
 
+    private void changeProjectStatusToProgress(String projectId, ProjectStatus status) {
+        hasAnyRole(Role.ADMIN_CREATOR, Role.SUPER_ADMIN, Role.MODULE_LEADER);
+        String projectModuleId = projectService.getModuleId(getCurrentTenantId(), projectId);
+        if (isHasAnyRole( Role.MODULE_LEADER)) isSameModule(projectModuleId);
+        projectService.changeStatusToReAllocatedOrWithdrawOrSuspendOrProgress(getCurrentTenantId(), projectId, status);
+    }
+
     private void changeProjectStatusToCompleted(String projectId) {
         hasAnyRole(Role.ADMIN_CREATOR, Role.SUPER_ADMIN, Role.MODULE_LEADER);
         String projectModuleId = projectService.getModuleId(getCurrentTenantId(), projectId);

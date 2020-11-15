@@ -178,7 +178,7 @@ public class ProjectService {
 		if (!project.getStatus().equals(PROPOSAL)){
 			throw new PPMSException(String.format("Project cannot deleted because status is different from '%s'.", PROPOSAL.getLabel()));
 		}
-		if (!project.getCreator().getPersonId().equals(personCreatorId) || !isModelLeader){
+		if (!project.getCreator().getPersonId().equals(personCreatorId) && !isModelLeader){
 			throw new PPMSException("Only the owner of the project or module leader can delete the project");
 		}
 		if (!project.getMembers().isEmpty() || !project.getTeam().isEmpty()){
@@ -305,10 +305,12 @@ public class ProjectService {
 	public boolean unAssign(long tenantId, String projectId, String personIdToUnassign, String position, SupervisorTerm term ,
                            String emailUser, boolean isModelLeader) {
 		Project project = projectRepository.getProjectWithoutGoals(tenantId, projectId);;
-		if (!project.getStatus().canAssignUnassign()){
-			throw new PPMSException(ErrorCode.PROJECT_ASSIGN_NOT_ALLOWED, "Project Assign not allowed");
-		}
+
 		if (!isModelLeader){
+			if (!project.getStatus().canAssignUnassign()){
+				throw new PPMSException(ErrorCode.PROJECT_ASSIGN_NOT_ALLOWED, "Project Assign not allowed");
+			}
+
             Person personAction = personRepository.findByTenantIdAndEmail(tenantId, emailUser);
             SupervisorTerm firstSupervisor =  organisationRepository.getDepartment(tenantId, project.getDepartmentId())
                     .map(Department::getSupervisorTerms).flatMap(ts -> ts.stream().filter(t -> t.getOrder() == 1).findFirst())
@@ -451,7 +453,7 @@ public class ProjectService {
 		}
 
 		//Change status
-		return projectRepository.updateProjectStatus(tenantId, projectId, ProjectStatus.START);
+		return projectRepository.updateProjectStatus(tenantId, projectId, PROGRESS);
 	}
 
 
